@@ -99,8 +99,8 @@ export default function BookingForm() {
           <motion.div className="text-center mb-8" variants={itemVariants}>
             <h2 className="text-3xl font-bold mb-4">Make an appointment</h2>
             <p className="text-gray-300">
-              Barber is a person whose occupation is mainly to cut, dress,
-              groom, style, and shave men's and boys' hair.
+              {`Barber is a person whose occupation is mainly to cut, dress,
+              groom, style, and shave men's and boys' hair.`}
             </p>
           </motion.div>
 
