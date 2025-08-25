@@ -64,13 +64,15 @@ export const items = [
     icon: BarChart3,
   },
 ];
+import { useSession } from "next-auth/react";
 
 export function AppSidebar() {
+  const { data: session } = useSession();
   return (
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
+          <SidebarGroupLabel>{session?.user?.role}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (

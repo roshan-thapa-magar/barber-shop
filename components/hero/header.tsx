@@ -2,9 +2,24 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { Menu, Settings, User, X, LogOut } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSession, signOut } from "next-auth/react";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+
+export const items = [
+  { title: "Profile", url: "/profile", icon: User },
+  { title: "Settings", url: "/settings", icon: Settings },
+];
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -12,6 +27,7 @@ export default function Header() {
 
   const pathname = usePathname();
   const isHomePage = pathname === "/";
+  const { data: session } = useSession();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -27,7 +43,7 @@ export default function Header() {
   return (
     <AnimatePresence mode="wait">
       <motion.header
-        key={pathname} // triggers animation on route change
+        key={pathname}
         initial="hidden"
         animate="visible"
         exit="hidden"
@@ -44,33 +60,85 @@ export default function Header() {
 
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center space-x-8">
-              <Link href="/" className="hover:text-amber-400 transition-colors">
+              <Link href="/" className="hover:text-amber-400">
                 Home
               </Link>
-              <Link
-                href="/about"
-                className="hover:text-amber-400 transition-colors"
-              >
+              <Link href="/about" className="hover:text-amber-400">
                 About
               </Link>
-              <Link
-                href="/services"
-                className="hover:text-amber-400 transition-colors"
-              >
+              <Link href="/services" className="hover:text-amber-400">
                 Services
               </Link>
-              <Link
-                href="/login"
-                className="hover:text-amber-400 transition-colors"
-              >
-                Login
-              </Link>
-              <Link
-                href="/register"
-                className="bg-neutral-700 hover:bg-neutral-800 px-4 py-2 rounded-lg transition-colors"
-              >
-                Register Account
-              </Link>
+
+              {session?.user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Avatar className="h-6 w-6 cursor-pointer">
+                      <AvatarImage
+                        src={
+                          session?.user?.image ??
+                          "https://github.com/shadcn.png"
+                        }
+                        alt={session?.user?.name ?? "User"}
+                      />
+                      <AvatarFallback>
+                        {session?.user?.name?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-48" align="end">
+                    <DropdownMenuLabel className="flex items-center gap-2 font-medium">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage
+                          src={
+                            session?.user?.image ??
+                            "https://github.com/shadcn.png"
+                          }
+                          alt={session?.user?.name ?? "User"}
+                        />
+                        <AvatarFallback>
+                          {session?.user?.name?.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      {session?.user?.email}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+
+                    {items.map((item) => (
+                      <DropdownMenuItem key={item.title} asChild>
+                        <Link
+                          href={item.url}
+                          className="flex items-center gap-2"
+                        >
+                          <item.icon className="w-4 h-4" />
+                          {item.title}
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => signOut({ callbackUrl: "/" })}
+                      className="text-red-500 flex items-center gap-2 cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <>
+                  <Link href="/login" className="hover:text-amber-400">
+                    Login
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="bg-neutral-700 hover:bg-neutral-800 px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Register Account
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -90,36 +158,41 @@ export default function Header() {
           {isMenuOpen && (
             <div className="md:hidden py-4 border-t border-gray-700">
               <div className="flex flex-col space-y-4">
-                <Link
-                  href="/"
-                  className="hover:text-amber-400 transition-colors"
-                >
+                <Link href="/" className="hover:text-amber-400">
                   Home
                 </Link>
-                <Link
-                  href="/about"
-                  className="hover:text-amber-400 transition-colors"
-                >
+                <Link href="/about" className="hover:text-amber-400">
                   About
                 </Link>
-                <Link
-                  href="/services"
-                  className="hover:text-amber-400 transition-colors"
-                >
+                <Link href="/services" className="hover:text-amber-400">
                   Services
                 </Link>
-                <Link
-                  href="/login"
-                  className="hover:text-amber-400 transition-colors"
-                >
-                  Login
-                </Link>
-                <Link
-                  href="/register"
-                  className="bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded-lg transition-colors inline-block"
-                >
-                  Register Account
-                </Link>
+
+                {session?.user ? (
+                  <>
+                    <Link href="/profile" className="hover:text-amber-400">
+                      Profile
+                    </Link>
+                    <button
+                      onClick={() => signOut({ callbackUrl: "/login" })}
+                      className="text-red-500 flex items-center gap-2"
+                    >
+                      <LogOut className="w-4 h-4" /> Log out
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/login" className="hover:text-amber-400">
+                      Login
+                    </Link>
+                    <Link
+                      href="/register"
+                      className="bg-amber-600 hover:bg-amber-700 px-4 py-2 rounded-lg transition-colors inline-block"
+                    >
+                      Register Account
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           )}

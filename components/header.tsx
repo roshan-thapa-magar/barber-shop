@@ -15,6 +15,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useSession, signOut } from "next-auth/react";
+import { Button } from "./ui/button";
 
 export const items = [
   {
@@ -31,6 +33,7 @@ export const items = [
 
 export function Header() {
   const pathname = usePathname();
+  const { data: session } = useSession();
 
   return (
     <header className="flex items-center justify-between px-4 py-2 border-b bg-background">
@@ -57,8 +60,14 @@ export function Header() {
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-48" align="end">
-            <DropdownMenuLabel className="font-medium">
-              My Account
+            <DropdownMenuLabel className="flex items-center gap-2 font-medium">
+              <Avatar className="h-6 w-6 cursor-pointer">
+                <AvatarImage src="https://github.com/shadcn.png" alt="User" />
+                <AvatarFallback>
+                  {session?.user?.name?.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              {session?.user?.email}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
 
@@ -73,14 +82,12 @@ export function Header() {
 
             <DropdownMenuSeparator />
 
-            <DropdownMenuItem asChild>
-              <Link
-                href="/login"
-                className="text-red-500 flex items-center gap-2"
-              >
-                <LogOut className="w-4 h-4" />
-                Log out
-              </Link>
+            <DropdownMenuItem
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="text-red-500 flex items-center gap-2 cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

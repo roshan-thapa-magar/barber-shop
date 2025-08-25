@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 const slides = [
   {
@@ -30,6 +32,8 @@ const slides = [
 
 export default function Hero() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const { status } = useSession();
+  const router = useRouter();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -44,6 +48,14 @@ export default function Hero() {
 
   const prevSlide = () => {
     setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+  };
+
+  const handleAppointmentClick = () => {
+    if (status === "authenticated") {
+      router.push("/appointment");
+    } else {
+      router.push("/login");
+    }
   };
 
   return (
@@ -69,12 +81,12 @@ export default function Hero() {
                 {slide.title}
               </h1>
               <p className="text-xl mb-8 text-gray-200">{slide.description}</p>
-              <Link
-                href="/appointment"
+              <button
+                onClick={handleAppointmentClick}
                 className="bg-neutral-700 hover:bg-neutral-800 text-white px-8 py-3 rounded-lg font-semibold transition-colors inline-block"
               >
                 Make Appointment
-              </Link>
+              </button>
             </div>
           </div>
         </div>

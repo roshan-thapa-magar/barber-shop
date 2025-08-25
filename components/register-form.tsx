@@ -28,7 +28,7 @@ export function RegisterForm({
             <img
               src="/image/about-1.jpg"
               alt="Image"
-              className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+              className="absolute inset-0 h-full w-full object-cover "
             />
           </div>
           <form className="p-6 md:p-8">

@@ -4,6 +4,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, Variants } from "framer-motion";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,8 +47,16 @@ export default function BookingForm() {
     },
   });
 
+  const { status } = useSession();
+  const router = useRouter();
+
   const onSubmit = (data: BookingFormData) => {
+    if (status === "unauthenticated") {
+      router.push("/login?callbackUrl=/appointment"); // redirect to login, then back
+      return;
+    }
     console.log("Booking submitted:", data);
+    // TODO: send data to API
   };
 
   // Animation variants
@@ -227,9 +237,12 @@ export default function BookingForm() {
             <motion.div className="text-center" variants={itemVariants}>
               <Button
                 type="submit"
+                disabled={status === "unauthenticated"}
                 className="bg-neutral-600 hover:bg-neutral-700 text-white font-semibold px-8 py-3 uppercase tracking-wide"
               >
-                Make Appointment
+                {status === "unauthenticated"
+                  ? "Login to Book"
+                  : "Make Appointment"}
               </Button>
             </motion.div>
           </motion.form>
