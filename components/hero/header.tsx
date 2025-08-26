@@ -18,7 +18,7 @@ import {
 
 export const items = [
   { title: "Profile", url: "/profile", icon: User },
-  { title: "Settings", url: "/settings", icon: Settings },
+  { title: "Make Appointment", url: "/appointment", icon: Settings },
 ];
 
 export default function Header() {

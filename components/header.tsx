@@ -1,5 +1,4 @@
 "use client";
-
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/toggle-theme";
 import { NotificationDropdown } from "@/components/notification-dropdown";
@@ -15,8 +14,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { useSession, signOut } from "next-auth/react";
-import { Button } from "./ui/button";
+import { signOut } from "next-auth/react";
 
 export const items = [
   {
@@ -30,11 +28,8 @@ export const items = [
     icon: Settings,
   },
 ];
-
 export function Header() {
   const pathname = usePathname();
-  const { data: session } = useSession();
-
   return (
     <header className="flex items-center justify-between px-4 py-2 border-b bg-background">
       {/* Left side */}
@@ -45,12 +40,10 @@ export function Header() {
             "Dashboard"}
         </h1>
       </div>
-
       {/* Right side */}
       <div className="flex items-center gap-2">
         <ThemeToggle />
         <NotificationDropdown />
-
         {/* Profile dropdown inside header */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -60,17 +53,10 @@ export function Header() {
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-48" align="end">
-            <DropdownMenuLabel className="flex items-center gap-2 font-medium">
-              <Avatar className="h-6 w-6 cursor-pointer">
-                <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-                <AvatarFallback>
-                  {session?.user?.name?.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              {session?.user?.email}
+            <DropdownMenuLabel className="font-medium">
+              My Account
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-
             {items.map((item) => (
               <DropdownMenuItem key={item.title} asChild>
                 <Link href={item.url} className="flex items-center gap-2">
@@ -79,15 +65,15 @@ export function Header() {
                 </Link>
               </DropdownMenuItem>
             ))}
-
             <DropdownMenuSeparator />
-
-            <DropdownMenuItem
-              onClick={() => signOut({ callbackUrl: "/login" })}
-              className="text-red-500 flex items-center gap-2 cursor-pointer"
-            >
-              <LogOut className="w-4 h-4" />
-              Log out
+            <DropdownMenuItem asChild>
+              <button
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="text-red-500 flex items-center gap-2 w-full text-left"
+              >
+                <LogOut className="w-4 h-4" />
+                Log out
+              </button>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

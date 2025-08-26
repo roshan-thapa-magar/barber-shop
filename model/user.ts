@@ -1,38 +1,39 @@
 import mongoose, { Schema, models } from "mongoose";
+import bcrypt from "bcryptjs";
 
-// Define the User schema
 const userSchema = new Schema({
-  email: {
+  name: { type: String, required: true, trim: true },
+  email: { type: String, required: true, unique: true, lowercase: true },
+  phone: { type: String, required: true, minlength: 10 },
+  password: { type: String, required: true, minlength: 6, select: false },
+  role: { type: String, enum: ["admin", "barber", "user"], default: "user" },
+  status: { type: String, enum: ["active", "inactive"], default: "active" },
+  image: { type: String, default: "" },
+  createdAt: { type: Date, default: Date.now },
+
+  ageGroup: {
     type: String,
-    required: [true, "Email is required"],
-    unique: true,
-    match: [/.+@.+\..+/, "Please enter a valid email address"],
+    enum: ["adult", "student", "old", "child"],
+    default: "adult",
   },
-  password: {
+  customerType: {
     type: String,
-    required: [true, "Password is required"],
-    minlength: [6, "Password must be at least 6 characters long"],
-  },
-  name: {
-    type: String,
-    required: false, // Name might not be required during initial signup
-  },
-  role: {
-    type: String,
-    enum: ["admin", "barber", "user"], // Possible roles
-    default: "user", // Default role for new users
-  },
-  image: {
-    type: String, // URL to user's profile image
-    required: false,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
+    enum: ["regular", "VIP", "new"],
+    default: "new",
   },
 });
 
-// Export the Mongoose model. If the model already exists, use it; otherwise, create a new one.
-const UserModel = models.User || mongoose.model("User", userSchema);
+// Hash password before save
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  this.password = await bcrypt.hash(this.password, 10);
+  next();
+});
 
+// Compare password method
+userSchema.methods.comparePassword = async function (candidate: string) {
+  return bcrypt.compare(candidate, this.password);
+};
+
+const UserModel = models.User || mongoose.model("User", userSchema);
 export default UserModel;
