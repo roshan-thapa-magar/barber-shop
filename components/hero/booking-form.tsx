@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, Variants } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useUserContext } from "@/context/UserContext";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useEffect, useState } from "react";
 
 const bookingSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -29,6 +31,13 @@ const bookingSchema = z.object({
 type BookingFormData = z.infer<typeof bookingSchema>;
 
 export default function BookingForm() {
+  const { user, reloadUser } = useUserContext();
+  const { status } = useSession();
+  const router = useRouter();
+
+  const [barbers, setBarbers] = useState([]);
+  const [services, setServices] = useState([]);
+
   const {
     register,
     handleSubmit,
@@ -47,19 +56,43 @@ export default function BookingForm() {
     },
   });
 
-  const { status } = useSession();
-  const router = useRouter();
+  useEffect(() => {
+    async function fetchBarbers() {
+      try {
+        const res = await fetch("/api/users?role=barber&status=active");
+        if (!res.ok) throw new Error("Failed to fetch barbers");
+        const data = await res.json();
+        setBarbers(data);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    async function fetchServices() {
+      try {
+        const res = await fetch("/api/services?status=active");
+        if (!res.ok) throw new Error("Failed to fetch services");
+        const data = await res.json();
+        setServices(data);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    fetchBarbers();
+    fetchServices();
+  }, []);
 
   const onSubmit = (data: BookingFormData) => {
     if (status === "unauthenticated") {
-      router.push("/login?callbackUrl=/appointment"); // redirect to login, then back
+      router.push("/login?callbackUrl=/appointment");
       return;
     }
+
     console.log("Booking submitted:", data);
-    // TODO: send data to API
+    // TODO: send booking data to API
   };
 
-  // Animation variants
   const containerVariants: Variants = {
     hidden: {},
     visible: { transition: { staggerChildren: 0.2 } },
@@ -67,16 +100,12 @@ export default function BookingForm() {
 
   const itemVariants: Variants = {
     hidden: { opacity: 0, y: 50 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.6, ease: [0.42, 0, 0.58, 1] },
-    },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
   };
 
   return (
     <section className="min-h-full flex flex-col lg:flex-row">
-      {/* Left side - Barber image */}
+      {/* Left side */}
       <div className="lg:w-1/2 relative">
         <img
           src="/image/book-bg.jpg"
@@ -86,14 +115,13 @@ export default function BookingForm() {
         <div className="absolute inset-0 bg-black/20"></div>
       </div>
 
-      {/* Right side - Booking form */}
+      {/* Right side */}
       <motion.div
         className="lg:w-1/2 relative bg-gray-900 text-white flex items-center justify-center p-8"
         style={{
           backgroundImage: `url('/image/satellite-map.png')`,
           backgroundSize: "cover",
           backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
         }}
         variants={containerVariants}
         initial="hidden"
@@ -109,8 +137,8 @@ export default function BookingForm() {
           <motion.div className="text-center mb-8" variants={itemVariants}>
             <h2 className="text-3xl font-bold mb-4">Make an appointment</h2>
             <p className="text-gray-300">
-              {`Barber is a person whose occupation is mainly to cut, dress,
-              groom, style, and shave men's and boys' hair.`}
+              Barber is a person whose occupation is mainly to cut, dress,
+              groom, style, and shave men's and boys' hair.
             </p>
           </motion.div>
 
@@ -124,6 +152,7 @@ export default function BookingForm() {
               <motion.div variants={itemVariants}>
                 <Input
                   type="text"
+                  value={user?.name}
                   placeholder="Name"
                   {...register("name")}
                   className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
@@ -138,6 +167,7 @@ export default function BookingForm() {
               <motion.div variants={itemVariants}>
                 <Input
                   type="email"
+                  value={user?.email}
                   placeholder="Your Email"
                   {...register("email")}
                   className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
@@ -154,6 +184,7 @@ export default function BookingForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <motion.div variants={itemVariants}>
                 <Input
+                  value={user?.phone}
                   type="tel"
                   placeholder="Your Phone No"
                   {...register("phone")}
@@ -183,22 +214,27 @@ export default function BookingForm() {
 
             {/* Service & Barber */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Service */}
               <motion.div variants={itemVariants}>
                 <Select
                   value={watch("service")}
-                  onValueChange={(value) => setValue("service", value)}
+                  onValueChange={(val) => setValue("service", val)}
                 >
                   <SelectTrigger className="bg-white/10 border-white/20 text-white w-full">
-                    <SelectValue placeholder="Services" />
+                    <SelectValue placeholder="Select Service" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="hair-styling">Hair Styling</SelectItem>
-                    <SelectItem value="shaving">Shaving</SelectItem>
-                    <SelectItem value="face-mask">Face Mask</SelectItem>
-                    <SelectItem value="hair-wash">Hair Wash</SelectItem>
-                    <SelectItem value="beard-trimming">
-                      Beard Trimming
-                    </SelectItem>
+                    {services.length > 0 ? (
+                      services.map((service: any) => (
+                        <SelectItem key={service._id} value={service._id}>
+                          {service.type} - ${service.price}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-service" disabled>
+                        No active services
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
                 {errors.service && (
@@ -208,21 +244,27 @@ export default function BookingForm() {
                 )}
               </motion.div>
 
+              {/* Barber */}
               <motion.div variants={itemVariants}>
                 <Select
                   value={watch("barber")}
-                  onValueChange={(value) => setValue("barber", value)}
+                  onValueChange={(val) => setValue("barber", val)}
                 >
                   <SelectTrigger className="bg-white/10 border-white/20 text-white w-full">
-                    <SelectValue placeholder="Choose Barbers" />
+                    <SelectValue placeholder="Choose Barber" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="michel-brown">Michel Brown</SelectItem>
-                    <SelectItem value="jonathan-smith">
-                      Jonathan Smith
-                    </SelectItem>
-                    <SelectItem value="jack-tosan">Jack Tosan</SelectItem>
-                    <SelectItem value="martin-lane">Martin Lane</SelectItem>
+                    {barbers.length > 0 ? (
+                      barbers.map((barber: any) => (
+                        <SelectItem key={barber._id} value={barber._id}>
+                          {barber.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-barber" disabled>
+                        No active barbers
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
                 {errors.barber && (

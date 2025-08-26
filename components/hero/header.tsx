@@ -15,9 +15,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useUserContext } from "@/context/UserContext";
 
 export const items = [
-  { title: "Profile", url: "/profile", icon: User },
+  { title: "My Account", url: "/account", icon: User },
   { title: "Make Appointment", url: "/appointment", icon: Settings },
 ];
 
@@ -28,6 +29,7 @@ export default function Header() {
   const pathname = usePathname();
   const isHomePage = pathname === "/";
   const { data: session } = useSession();
+  const { user, reloadUser } = useUserContext();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -75,10 +77,7 @@ export default function Header() {
                   <DropdownMenuTrigger asChild>
                     <Avatar className="h-6 w-6 cursor-pointer">
                       <AvatarImage
-                        src={
-                          session?.user?.image ??
-                          "https://github.com/shadcn.png"
-                        }
+                        src={"https://github.com/shadcn.png"}
                         alt={session?.user?.name ?? "User"}
                       />
                       <AvatarFallback>
@@ -90,17 +89,14 @@ export default function Header() {
                     <DropdownMenuLabel className="flex items-center gap-2 font-medium">
                       <Avatar className="h-8 w-8">
                         <AvatarImage
-                          src={
-                            session?.user?.image ??
-                            "https://github.com/shadcn.png"
-                          }
-                          alt={session?.user?.name ?? "User"}
+                          src={"https://github.com/shadcn.png"}
+                          alt={user?.name ?? "User"}
                         />
                         <AvatarFallback>
-                          {session?.user?.name?.charAt(0).toUpperCase()}
+                          {user?.name?.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      {session?.user?.email}
+                      {user?.email}
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
 
