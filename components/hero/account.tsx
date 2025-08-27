@@ -47,8 +47,8 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-full flex flex-col items-center p-6 lg:p-12 mt-16">
-      <div className="w-full max-w-3xl bg-neutral-900   rounded-2xl shadow-md p-8 space-y-6">
+    <div className="min-h-full flex flex-col items-center p-6 lg:p-12 mt-16 bg-zinc-950">
+      <div className="w-full max-w-3xl bg-neutral-900 text-white   rounded-2xl shadow-md p-8 space-y-6">
         {/* Title */}
         <h2 className="text-2xl font-bold text-neutral-500 text-center">
           Edit Profile
@@ -154,7 +154,11 @@ export default function ProfilePage() {
 
         {/* Submit Button */}
         <div className="text-center">
-          <Button onClick={handleSubmit} className="w-full md:w-1/2">
+          <Button
+            variant={"secondary"}
+            onClick={handleSubmit}
+            className="w-full"
+          >
             Save Profile
           </Button>
         </div>

@@ -2,7 +2,7 @@ import mongoose, { Schema, models } from "mongoose";
 
 const appointmentSchema = new Schema(
   {
-    userName: {
+    name: {
       type: String,
       required: [true, "User name is required"],
     },
@@ -11,40 +11,50 @@ const appointmentSchema = new Schema(
       required: [true, "Email is required"],
       match: [/.+@.+\..+/, "Please enter a valid email"],
     },
-    phoneNumber: {
+    phone: {
       type: String,
       required: [true, "Phone number is required"],
     },
-    location: {
-      type: String,
-      required: [true, "Location is required"],
-    },
-    barberName: {
+    barber: {
       type: String,
       required: [true, "Barber name is required"],
     },
-    date: {
+    service: {
       type: String,
-      required: [true, "Date is required"],
+      required: [true, "Services is required"],
     },
-    time: {
+    schedule: {
+      type: Date,
+      required: true,
+    },
+    customerType: {
       type: String,
-      required: [true, "Time is required"],
+      enum: ["regular", "VIP", "new"],
+      required: [true, "Age Group is required"],
+    },
+    ageGroup: {
+      type: String,
+      enum: ["student", "adult", "child", "young", "other"],
+      default: "adult",
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["cash", "online"],
+      default: "cash",
     },
     paymentStatus: {
       type: String,
       enum: ["pending", "paid", "cancelled"],
       default: "pending",
     },
-    userType: {
+    myId: {
       type: String,
-      enum: ["customer", "admin", "barber"],
-      default: "customer",
+      required: true,
     },
     status: {
       type: String,
-      enum: ["scheduled", "completed", "cancelled"],
-      default: "scheduled",
+      enum: ["scheduled", "pending", "completed", "cancelled"],
+      default: "pending",
     },
   },
   { timestamps: true }

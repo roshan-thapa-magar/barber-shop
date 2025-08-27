@@ -7,6 +7,7 @@ import { motion, Variants } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useUserContext } from "@/context/UserContext";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,24 +20,50 @@ import {
 } from "@/components/ui/select";
 import { useEffect, useState } from "react";
 
+// Types
+interface Barber {
+  _id: string;
+  name: string;
+}
+
+interface Service {
+  _id: string;
+  type: string;
+  price: number;
+}
+
+interface User {
+  _id?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  customerType?: string;
+  ageGroup?: "student" | "adult" | "child" | "young" | "other";
+}
+
 const bookingSchema = z.object({
   name: z.string().min(2, "Name is required"),
   email: z.string().email("Invalid email address"),
   phone: z.string().min(7, "Phone number too short"),
-  time: z.string().min(1, "Please enter a time"),
+  schedule: z.string().min(1, "Please enter a schedule"),
   service: z.string().min(1, "Please select a service"),
   barber: z.string().min(1, "Please choose a barber"),
+  customerType: z.string(),
+  ageGroup: z.enum(["student", "adult", "child", "young", "other"]),
+  paymentMethod: z.enum(["cash", "online"]),
+  myId: z.string(),
 });
 
 type BookingFormData = z.infer<typeof bookingSchema>;
 
 export default function BookingForm() {
-  const { user, reloadUser } = useUserContext();
+  const { user } = useUserContext() as { user: User };
   const { status } = useSession();
   const router = useRouter();
 
-  const [barbers, setBarbers] = useState([]);
-  const [services, setServices] = useState([]);
+  const [barbers, setBarbers] = useState<Barber[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const {
     register,
@@ -47,50 +74,67 @@ export default function BookingForm() {
   } = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
-      name: "",
-      email: "",
-      phone: "",
-      time: "",
+      myId: user?._id,
+      name: user?.name || "",
+      email: user?.email || "",
+      phone: user?.phone || "",
+      schedule: "",
       service: "",
       barber: "",
+      customerType: user?.customerType || "regular",
+      ageGroup: user?.ageGroup || "other",
+      paymentMethod: "cash",
     },
   });
 
+  // Fetch barbers and services
   useEffect(() => {
-    async function fetchBarbers() {
+    async function fetchData() {
       try {
-        const res = await fetch("/api/users?role=barber&status=active");
-        if (!res.ok) throw new Error("Failed to fetch barbers");
-        const data = await res.json();
-        setBarbers(data);
+        const barberRes = await fetch("/api/users?role=barber&status=active");
+        if (!barberRes.ok) throw new Error("Failed to fetch barbers");
+        const barberData: Barber[] = await barberRes.json();
+        setBarbers(barberData);
+
+        const serviceRes = await fetch("/api/services?status=active");
+        if (!serviceRes.ok) throw new Error("Failed to fetch services");
+        const serviceData: Service[] = await serviceRes.json();
+        setServices(serviceData);
       } catch (error) {
         console.error(error);
+        toast.error("Failed to load barbers or services");
       }
     }
 
-    async function fetchServices() {
-      try {
-        const res = await fetch("/api/services?status=active");
-        if (!res.ok) throw new Error("Failed to fetch services");
-        const data = await res.json();
-        setServices(data);
-      } catch (error) {
-        console.error(error);
-      }
-    }
-
-    fetchBarbers();
-    fetchServices();
+    fetchData();
   }, []);
 
-  const onSubmit = (data: BookingFormData) => {
+  const onSubmit: (data: BookingFormData) => Promise<void> = async (data) => {
     if (status === "unauthenticated") {
       router.push("/login?callbackUrl=/appointment");
       return;
     }
 
-    console.log("Booking submitted:", data);
-    // TODO: send booking data to API
+    setLoading(true);
+    try {
+      const res = await fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...data,
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+
+      toast.success("Appointment booked successfully!");
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Booking failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const containerVariants: Variants = {
@@ -105,7 +149,6 @@ export default function BookingForm() {
 
   return (
     <section className="min-h-full flex flex-col lg:flex-row">
-      {/* Left side */}
       <div className="lg:w-1/2 relative">
         <img
           src="/image/book-bg.jpg"
@@ -115,14 +158,8 @@ export default function BookingForm() {
         <div className="absolute inset-0 bg-black/20"></div>
       </div>
 
-      {/* Right side */}
       <motion.div
         className="lg:w-1/2 relative bg-gray-900 text-white flex items-center justify-center p-8"
-        style={{
-          backgroundImage: `url('/image/satellite-map.png')`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
         variants={containerVariants}
         initial="hidden"
         whileInView="visible"
@@ -137,8 +174,7 @@ export default function BookingForm() {
           <motion.div className="text-center mb-8" variants={itemVariants}>
             <h2 className="text-3xl font-bold mb-4">Make an appointment</h2>
             <p className="text-gray-300">
-              Barber is a person whose occupation is mainly to cut, dress,
-              groom, style, and shave men's and boys' hair.
+              Choose your preferred service, barber, and schedule.
             </p>
           </motion.div>
 
@@ -152,7 +188,6 @@ export default function BookingForm() {
               <motion.div variants={itemVariants}>
                 <Input
                   type="text"
-                  value={user?.name}
                   placeholder="Name"
                   {...register("name")}
                   className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
@@ -163,11 +198,9 @@ export default function BookingForm() {
                   </p>
                 )}
               </motion.div>
-
               <motion.div variants={itemVariants}>
                 <Input
                   type="email"
-                  value={user?.email}
                   placeholder="Your Email"
                   {...register("email")}
                   className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
@@ -180,11 +213,10 @@ export default function BookingForm() {
               </motion.div>
             </div>
 
-            {/* Phone & Time */}
+            {/* Phone & schedule */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <motion.div variants={itemVariants}>
                 <Input
-                  value={user?.phone}
                   type="tel"
                   placeholder="Your Phone No"
                   {...register("phone")}
@@ -196,17 +228,16 @@ export default function BookingForm() {
                   </p>
                 )}
               </motion.div>
-
               <motion.div variants={itemVariants}>
                 <Input
                   type="text"
-                  placeholder="Your Free Time"
-                  {...register("time")}
+                  placeholder="Your Free schedule"
+                  {...register("schedule")}
                   className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                 />
-                {errors.time && (
+                {errors.schedule && (
                   <p className="text-red-500 text-sm mt-1">
-                    {errors.time.message}
+                    {errors.schedule.message}
                   </p>
                 )}
               </motion.div>
@@ -214,7 +245,6 @@ export default function BookingForm() {
 
             {/* Service & Barber */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Service */}
               <motion.div variants={itemVariants}>
                 <Select
                   value={watch("service")}
@@ -225,7 +255,7 @@ export default function BookingForm() {
                   </SelectTrigger>
                   <SelectContent>
                     {services.length > 0 ? (
-                      services.map((service: any) => (
+                      services.map((service) => (
                         <SelectItem key={service._id} value={service._id}>
                           {service.type} - ${service.price}
                         </SelectItem>
@@ -237,14 +267,8 @@ export default function BookingForm() {
                     )}
                   </SelectContent>
                 </Select>
-                {errors.service && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.service.message}
-                  </p>
-                )}
               </motion.div>
 
-              {/* Barber */}
               <motion.div variants={itemVariants}>
                 <Select
                   value={watch("barber")}
@@ -255,7 +279,7 @@ export default function BookingForm() {
                   </SelectTrigger>
                   <SelectContent>
                     {barbers.length > 0 ? (
-                      barbers.map((barber: any) => (
+                      barbers.map((barber) => (
                         <SelectItem key={barber._id} value={barber._id}>
                           {barber.name}
                         </SelectItem>
@@ -267,22 +291,71 @@ export default function BookingForm() {
                     )}
                   </SelectContent>
                 </Select>
-                {errors.barber && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.barber.message}
-                  </p>
-                )}
               </motion.div>
             </div>
 
-            {/* Submit Button */}
+            {/* Age Group & Payment Method */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <motion.div variants={itemVariants}>
+                <Select
+                  value={watch("ageGroup")}
+                  onValueChange={(val) =>
+                    setValue(
+                      "ageGroup",
+                      val as "student" | "adult" | "child" | "young" | "other"
+                    )
+                  }
+                >
+                  <SelectTrigger className="bg-white/10 border-white/20 text-white w-full">
+                    <SelectValue placeholder="Age Group" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="student">Student</SelectItem>
+                    <SelectItem value="adult">Adult</SelectItem>
+                    <SelectItem value="child">Child</SelectItem>
+                    <SelectItem value="young">Young</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </motion.div>
+
+              <motion.div variants={itemVariants}>
+                <Select
+                  value={watch("paymentMethod")}
+                  onValueChange={(val) =>
+                    setValue("paymentMethod", val as "cash" | "online")
+                  }
+                >
+                  <SelectTrigger className="bg-white/10 border-white/20 text-white w-full">
+                    <SelectValue placeholder="Payment Method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="online">Online</SelectItem>
+                  </SelectContent>
+                </Select>
+              </motion.div>
+            </div>
+
+            {/* Customer Type (read-only) */}
+            <motion.div variants={itemVariants}>
+              <Input
+                type="text"
+                value={user?.customerType || "regular"}
+                disabled
+                className="bg-white/10 border-white/20 text-gray-300"
+              />
+            </motion.div>
+
             <motion.div className="text-center" variants={itemVariants}>
               <Button
                 type="submit"
-                disabled={status === "unauthenticated"}
+                disabled={status === "unauthenticated" || loading}
                 className="bg-neutral-600 hover:bg-neutral-700 text-white font-semibold px-8 py-3 uppercase tracking-wide"
               >
-                {status === "unauthenticated"
+                {loading
+                  ? "Booking..."
+                  : status === "unauthenticated"
                   ? "Login to Book"
                   : "Make Appointment"}
               </Button>

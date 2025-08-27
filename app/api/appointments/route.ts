@@ -4,7 +4,7 @@ import AppointmentModel from "@/model/appointment";
 
 await dbConnect();
 
-// ✅ GET all appointments
+// GET all appointments
 export async function GET() {
   try {
     const appointments = await AppointmentModel.find();
@@ -14,7 +14,7 @@ export async function GET() {
   }
 }
 
-// ✅ POST new appointment
+// POST new appointment
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

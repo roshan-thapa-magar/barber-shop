@@ -4,7 +4,7 @@ import AppointmentModel from "@/model/appointment";
 
 await dbConnect();
 
-// ✅ GET single appointment
+// GET single appointment
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -23,7 +23,7 @@ export async function GET(
   }
 }
 
-// ✅ PUT update appointment
+// PUT update appointment
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -49,7 +49,7 @@ export async function PUT(
   }
 }
 
-// ✅ DELETE appointment
+// DELETE appointment
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
