@@ -2,6 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongodb";
 import ServiceModel from "@/model/service";
 
+// GET service by ID
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  await dbConnect();
+  try {
+    const { id } = params;
+
+    const service = await ServiceModel.findById(id);
+
+    if (!service) {
+      return NextResponse.json({ error: "Service not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(service);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }

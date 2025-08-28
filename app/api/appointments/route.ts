@@ -5,9 +5,18 @@ import AppointmentModel from "@/model/appointment";
 await dbConnect();
 
 // GET all appointments
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const appointments = await AppointmentModel.find();
+    const { searchParams } = new URL(request.url);
+    const statusParam = searchParams.get("status"); // "scheduled,pending"
+
+    let filter = {};
+    if (statusParam) {
+      const statusArray = statusParam.split(","); // ["scheduled", "pending"]
+      filter = { status: { $in: statusArray } };
+    }
+
+    const appointments = await AppointmentModel.find(filter);
     return NextResponse.json(appointments);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

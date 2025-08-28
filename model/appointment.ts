@@ -8,20 +8,23 @@ const appointmentSchema = new Schema(
     },
     email: {
       type: String,
-      required: [true, "Email is required"],
+      required: false, // optional
       match: [/.+@.+\..+/, "Please enter a valid email"],
     },
     phone: {
       type: String,
-      required: [true, "Phone number is required"],
+      required: false, // optional
     },
     barber: {
-      type: String,
+      type: String, // just a string
       required: [true, "Barber name is required"],
     },
     service: {
-      type: String,
-      required: [true, "Services is required"],
+      type: {
+        type: String,
+        required: [true, "Service type is required"],
+      },
+      price: { type: Number, required: [true, "Service price is required"] },
     },
     schedule: {
       type: Date,
@@ -30,7 +33,7 @@ const appointmentSchema = new Schema(
     customerType: {
       type: String,
       enum: ["regular", "VIP", "new"],
-      required: [true, "Age Group is required"],
+      required: [true, "Customer type is required"],
     },
     ageGroup: {
       type: String,
@@ -49,7 +52,6 @@ const appointmentSchema = new Schema(
     },
     myId: {
       type: String,
-      required: true,
     },
     status: {
       type: String,

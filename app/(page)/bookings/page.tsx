@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import moment from "moment";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,95 +28,86 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { MoreHorizontal, Search, Filter } from "lucide-react";
+import { MoreHorizontal, Search, Filter, Printer } from "lucide-react";
 import { AppointmentForm } from "@/components/appointment-form";
-import { toast } from "sonner";
 
-interface Appointment {
-  id: string;
-  userName: string;
-  email: string;
-  phoneNumber: string;
-  location: string;
-  barberName: string;
-  date: string;
-  time: string;
-  title: "student" | "adult" | "child" | "young" | "other";
-  paymentMethod: "cash" | "online";
-  paymentStatus: "pending" | "paid" | "cancelled";
-  userType: "customer" | "admin" | "barber";
-  status: "scheduled" | "completed" | "cancelled";
+interface ServiceDetails {
+  type: string;
+  price: number;
 }
 
-// Sample data
-const initialAppointments: Appointment[] = [
-  {
-    id: "1",
-    userName: "John Doe",
-    email: "john@example.com",
-    phoneNumber: "+1 234-567-8901",
-    location: "Downtown Branch",
-    barberName: "Mike Johnson",
-    date: "2024-01-15",
-    time: "10:00",
-    title: "adult",
-    paymentMethod: "online",
-    paymentStatus: "paid",
-    userType: "customer",
-    status: "scheduled",
-  },
-  {
-    id: "2",
-    userName: "Jane Smith",
-    email: "jane@example.com",
-    phoneNumber: "+1 234-567-8902",
-    location: "Mall Branch",
-    barberName: "Sarah Wilson",
-    date: "2024-01-16",
-    time: "14:30",
-    title: "young",
-    paymentMethod: "cash",
-    paymentStatus: "pending",
-    userType: "customer",
-    status: "completed",
-  },
-  {
-    id: "3",
-    userName: "Bob Wilson",
-    email: "bob@example.com",
-    phoneNumber: "+1 234-567-8903",
-    location: "City Center",
-    barberName: "Alex Brown",
-    date: "2024-01-17",
-    time: "09:15",
-    title: "student",
-    paymentMethod: "online",
-    paymentStatus: "cancelled",
-    userType: "customer",
-    status: "cancelled",
-  },
-];
+interface Appointment {
+  _id: string;
+  name: string;
+  email: string;
+  phone: string;
+  barber: string;
+  service: ServiceDetails;
+  schedule: string;
+  customerType: "regular" | "VIP" | "new";
+  ageGroup: "student" | "adult" | "child" | "young" | "other";
+  paymentMethod: "cash" | "online";
+  paymentStatus: "pending" | "paid" | "cancelled";
+  status: "scheduled" | "pending" | "completed" | "cancelled";
+}
+
+// Form data without _id
+interface AppointmentFormData {
+  name: string;
+  email: string;
+  phone: string;
+  barber: string;
+  service: ServiceDetails;
+  schedule: string;
+  customerType: "regular" | "VIP" | "new";
+  ageGroup: "student" | "adult" | "child" | "young" | "other";
+  paymentMethod: "cash" | "online";
+  paymentStatus: "pending" | "paid" | "cancelled";
+  status: "scheduled" | "pending" | "completed" | "cancelled";
+}
 
 export default function AppointmentsPage() {
-  const [appointments, setAppointments] =
-    useState<Appointment[]>(initialAppointments);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedAppointment, setSelectedAppointment] = useState<
     Appointment | undefined
-  >();
+  >(undefined);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      try {
+        setIsLoading(true);
+        const { data } = await axios.get(
+          "/api/appointments?status=scheduled,pending"
+        );
+        if (!Array.isArray(data)) {
+          toast.error("Invalid data received from server");
+          setAppointments([]);
+          return;
+        }
+        setAppointments(data);
+      } catch (error) {
+        console.error(error);
+        toast.error("Failed to fetch appointments");
+        setAppointments([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAppointments();
+  }, []);
 
   const filteredAppointments = appointments.filter((appointment) => {
     const matchesSearch =
-      appointment.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      appointment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       appointment.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.barberName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.location.toLowerCase().includes(searchTerm.toLowerCase());
-
+      appointment.barber.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus =
       statusFilter === "all" || appointment.status === statusFilter;
-
     return matchesSearch && matchesStatus;
   });
 
@@ -122,26 +116,30 @@ export default function AppointmentsPage() {
     setIsFormOpen(true);
   };
 
-  const handleDeleteAppointment = (id: string) => {
-    setAppointments(
-      appointments.filter((appointment) => appointment.id !== id)
-    );
-    toast.success("Appointment deleted successfully");
-  };
-
-  const handleFormSubmit = (appointmentData: Appointment) => {
-    if (selectedAppointment) {
-      setAppointments(
-        appointments.map((appointment) =>
-          appointment.id === selectedAppointment.id
-            ? appointmentData
-            : appointment
-        )
-      );
-    } else {
-      setAppointments([...appointments, appointmentData]);
+  const handleFormSubmit = async (formData: AppointmentFormData) => {
+    try {
+      if (selectedAppointment) {
+        await axios.put(
+          `/api/appointments/${selectedAppointment._id}`,
+          formData
+        );
+        // refetch appointments to ensure table syncs with server
+        const { data } = await axios.get(
+          "/api/appointments?status=scheduled,pending"
+        );
+        setAppointments(data);
+        toast.success("Appointment updated successfully");
+      } else {
+        const response = await axios.post("/api/appointments", formData);
+        setAppointments((prev) => [...prev, response.data]);
+        toast.success("Appointment added successfully");
+      }
+      setSelectedAppointment(undefined);
+      setIsFormOpen(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to save appointment");
     }
-    setSelectedAppointment(undefined);
   };
 
   const handleFormClose = () => {
@@ -149,66 +147,294 @@ export default function AppointmentsPage() {
     setSelectedAppointment(undefined);
   };
 
-  const getTitleBadge = (title: string) => {
-    const variants = {
-      student: "secondary",
-      adult: "default",
-      child: "outline",
-      young: "secondary",
-      other: "outline",
-    } as const;
-
-    return (
-      <Badge variant={variants[title as keyof typeof variants] || "default"}>
-        {title.charAt(0).toUpperCase() + title.slice(1)}
-      </Badge>
-    );
+  const handleDeleteAppointment = async (id: string) => {
+    try {
+      await axios.delete(`/api/appointments/${id}`);
+      setAppointments((prev) => prev.filter((a) => a._id !== id));
+      toast.success("Appointment deleted successfully");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to delete appointment");
+    }
   };
 
-  const getPaymentMethodBadge = (method: string) => {
-    const variants = {
-      cash: "outline",
-      online: "secondary",
-    } as const;
+  const handlePrintAppointment = (appointment: Appointment) => {
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      const currentDate = moment().format("MMMM Do, YYYY");
+      const appointmentDate = moment(appointment.schedule).format(
+        "MMMM Do, YYYY"
+      );
+      const appointmentTime = moment(appointment.schedule).format("h:mm A");
 
-    return (
-      <Badge variant={variants[method as keyof typeof variants] || "default"}>
-        {method.charAt(0).toUpperCase() + method.slice(1)}
-      </Badge>
-    );
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Service Bill</title>
+            <style>
+              body { 
+                font-family: Arial, sans-serif; 
+                padding: 20px; 
+                max-width: 600px; 
+                margin: 0 auto;
+                line-height: 1.6;
+              }
+              .header { 
+                text-align: center; 
+                margin-bottom: 30px; 
+                border-bottom: 2px solid #333;
+                padding-bottom: 20px;
+              }
+              .company-name {
+                font-size: 24px;
+                font-weight: bold;
+                margin-bottom: 5px;
+              }
+              .bill-title {
+                font-size: 18px;
+                color: #666;
+                margin-top: 10px;
+              }
+              .bill-info {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 30px;
+                padding: 15px;
+                background-color: #f8f9fa;
+                border-radius: 5px;
+              }
+              .customer-details {
+                margin-bottom: 30px;
+              }
+              .service-details {
+                margin-bottom: 30px;
+              }
+              .detail-row { 
+                margin-bottom: 8px;
+                display: flex;
+                justify-content: space-between;
+              }
+              .label { 
+                font-weight: bold; 
+                color: #333;
+              }
+              .value {
+                color: #666;
+              }
+              .service-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 20px;
+              }
+              .service-table th,
+              .service-table td {
+                border: 1px solid #ddd;
+                padding: 12px;
+                text-align: left;
+              }
+              .service-table th {
+                background-color: #f8f9fa;
+                font-weight: bold;
+              }
+              .total-section {
+                border-top: 2px solid #333;
+                padding-top: 15px;
+                margin-top: 20px;
+              }
+              .total-row {
+                display: flex;
+                justify-content: space-between;
+                font-size: 18px;
+                font-weight: bold;
+                margin-top: 10px;
+              }
+              .footer {
+                text-align: center;
+                margin-top: 40px;
+                padding-top: 20px;
+                border-top: 1px solid #ddd;
+                color: #666;
+                font-size: 14px;
+              }
+              .status-badge {
+                display: inline-block;
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 12px;
+                font-weight: bold;
+                text-transform: uppercase;
+              }
+              .status-scheduled {
+                background-color: #e3f2fd;
+                color: #1976d2;
+              }
+              .status-pending {
+                background-color: #fff3e0;
+                color: #f57c00;
+              }
+              .payment-pending {
+                background-color: #fff3e0;
+                color: #f57c00;
+              }
+              .payment-paid {
+                background-color: #e8f5e8;
+                color: #2e7d32;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div class="company-name">Barber Shop</div>
+              <div class="bill-title">Service Bill</div>
+            </div>
+            
+            <div class="bill-info">
+              <div>
+                <strong>Bill Date:</strong> ${currentDate}<br>
+                <strong>Bill ID:</strong> #${appointment._id
+                  .slice(-8)
+                  .toUpperCase()}
+              </div>
+              <div>
+                <strong>Appointment Date:</strong> ${appointmentDate}<br>
+                <strong>Appointment Time:</strong> ${appointmentTime}
+              </div>
+            </div>
+
+            <div class="customer-details">
+              <h3>Customer Details</h3>
+              <div class="detail-row">
+                <span class="label">Name:</span>
+                <span class="value">${appointment.name}</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Customer Type:</span>
+                <span class="value">${
+                  appointment.customerType.charAt(0).toUpperCase() +
+                  appointment.customerType.slice(1)
+                }</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Age Group:</span>
+                <span class="value">${
+                  appointment.ageGroup.charAt(0).toUpperCase() +
+                  appointment.ageGroup.slice(1)
+                }</span>
+              </div>
+            </div>
+
+            <div class="service-details">
+              <h3>Service Details</h3>
+              <table class="service-table">
+                <thead>
+                  <tr>
+                    <th>Service</th>
+                    <th>Barber</th>
+                    <th>Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>${appointment.service.type}</td>
+                    <td>${appointment.barber}</td>
+                    <td>$${appointment.service.price.toFixed(2)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="total-section">
+              <div class="detail-row">
+                <span class="label">Subtotal:</span>
+                <span class="value">$${appointment.service.price.toFixed(
+                  2
+                )}</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Tax (0%):</span>
+                <span class="value">$0.00</span>
+              </div>
+              <div class="total-row">
+                <span>Total Amount:</span>
+                <span>$${appointment.service.price.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div style="margin-top: 30px;">
+              <div class="detail-row">
+                <span class="label">Payment Method:</span>
+                <span class="value">${
+                  appointment.paymentMethod.charAt(0).toUpperCase() +
+                  appointment.paymentMethod.slice(1)
+                }</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Payment Status:</span>
+                <span class="status-badge payment-${
+                  appointment.paymentStatus
+                }">${
+        appointment.paymentStatus.charAt(0).toUpperCase() +
+        appointment.paymentStatus.slice(1)
+      }</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Appointment Status:</span>
+                <span class="status-badge status-${appointment.status}">${
+        appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)
+      }</span>
+              </div>
+            </div>
+
+            <div class="footer">
+              <p>Thank you for choosing our services!</p>
+              <p>For any queries, please contact us.</p>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
   };
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      scheduled: "default",
-      completed: "secondary",
-      cancelled: "destructive",
-    } as const;
+  const getBadge = (
+    value: string,
+    type: "status" | "paymentMethod" | "paymentStatus" | "ageGroup"
+  ) => {
+    const variants: Record<
+      string,
+      "default" | "secondary" | "destructive" | "outline"
+    > =
+      type === "status"
+        ? {
+            scheduled: "default",
+            pending: "outline",
+            completed: "secondary",
+            cancelled: "destructive",
+          }
+        : type === "paymentMethod"
+        ? { cash: "outline", online: "secondary" }
+        : type === "paymentStatus"
+        ? { paid: "secondary", pending: "default", cancelled: "destructive" }
+        : type === "ageGroup"
+        ? {
+            student: "secondary",
+            adult: "default",
+            child: "outline",
+            young: "secondary",
+            other: "outline",
+          }
+        : {};
 
     return (
-      <Badge variant={variants[status as keyof typeof variants] || "default"}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    );
-  };
-
-  const getPaymentStatusBadge = (status: string) => {
-    const variants = {
-      paid: "secondary",
-      pending: "default",
-      cancelled: "destructive",
-    } as const;
-
-    return (
-      <Badge variant={variants[status as keyof typeof variants] || "default"}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+      <Badge variant={variants[value] || "default"}>
+        {value.charAt(0).toUpperCase() + value.slice(1)}
       </Badge>
     );
   };
 
   return (
     <div className="flex flex-col h-screen">
-      {/* Header */}
       <div className="flex-none p-6 border-b bg-background">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -217,10 +443,15 @@ export default function AppointmentsPage() {
               Manage and track all appointments
             </p>
           </div>
+          <Button
+            onClick={() => setIsFormOpen(true)}
+            className="w-full sm:w-auto"
+          >
+            Add Appointment
+          </Button>
         </div>
       </div>
 
-      {/* Filters */}
       <div className="flex-none p-6 border-b bg-muted/50">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
@@ -241,54 +472,60 @@ export default function AppointmentsPage() {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="scheduled">Scheduled</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-auto">
+      <div className="flex-1 overflow-auto">
+        {isLoading ? (
+          <p className="p-6 text-center text-muted-foreground">Loading...</p>
+        ) : (
           <Table>
             <TableHeader className="sticky top-0 bg-background z-10">
               <TableRow>
-                <TableHead className="min-w-[150px]">User Name</TableHead>
-                <TableHead className="min-w-[200px]">Email</TableHead>
-                <TableHead className="min-w-[150px]">Phone</TableHead>
-                <TableHead className="min-w-[150px]">Location</TableHead>
-                <TableHead className="min-w-[150px]">Barber</TableHead>
-                <TableHead className="min-w-[120px]">Date</TableHead>
-                <TableHead className="min-w-[100px]">Time</TableHead>
-                <TableHead className="min-w-[100px]">Title</TableHead>
-                <TableHead className="min-w-[120px]">Payment Method</TableHead>
-                <TableHead className="min-w-[120px]">Payment Status</TableHead>
-                <TableHead className="min-w-[120px]">Status</TableHead>
-                <TableHead className="w-[70px]">Actions</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Barber</TableHead>
+                <TableHead>Service</TableHead>
+                <TableHead>Schedule</TableHead>
+                <TableHead>Customer Type</TableHead>
+                <TableHead>Age Group</TableHead>
+                <TableHead>Payment Method</TableHead>
+                <TableHead>Payment Status</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredAppointments.map((appointment) => (
-                <TableRow key={appointment.id}>
-                  <TableCell className="font-medium">
-                    {appointment.userName}
-                  </TableCell>
+                <TableRow key={appointment._id}>
+                  <TableCell>{appointment.name}</TableCell>
                   <TableCell>{appointment.email}</TableCell>
-                  <TableCell>{appointment.phoneNumber}</TableCell>
-                  <TableCell>{appointment.location}</TableCell>
-                  <TableCell>{appointment.barberName}</TableCell>
-                  <TableCell>{appointment.date}</TableCell>
-                  <TableCell>{appointment.time}</TableCell>
-                  <TableCell>{getTitleBadge(appointment.title)}</TableCell>
+                  <TableCell>{appointment.phone}</TableCell>
+                  <TableCell>{appointment.barber}</TableCell>
                   <TableCell>
-                    {getPaymentMethodBadge(appointment.paymentMethod)}
+                    {appointment.service.type} ({appointment.service.price})
                   </TableCell>
                   <TableCell>
-                    {getPaymentStatusBadge(appointment.paymentStatus)}
+                    {moment(appointment.schedule).format("h:mm A")}
                   </TableCell>
-                  <TableCell>{getStatusBadge(appointment.status)}</TableCell>
+                  <TableCell>{appointment.customerType}</TableCell>
+                  <TableCell>
+                    {getBadge(appointment.ageGroup, "ageGroup")}
+                  </TableCell>
+                  <TableCell>
+                    {getBadge(appointment.paymentMethod, "paymentMethod")}
+                  </TableCell>
+                  <TableCell>
+                    {getBadge(appointment.paymentStatus, "paymentStatus")}
+                  </TableCell>
+                  <TableCell>
+                    {getBadge(appointment.status, "status")}
+                  </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -304,8 +541,13 @@ export default function AppointmentsPage() {
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
+                          onClick={() => handlePrintAppointment(appointment)}
+                        >
+                          <Printer className="mr-2 h-4 w-4" /> Print Bill
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
                           onClick={() =>
-                            handleDeleteAppointment(appointment.id)
+                            handleDeleteAppointment(appointment._id)
                           }
                           className="text-destructive"
                         >
@@ -318,7 +560,7 @@ export default function AppointmentsPage() {
               ))}
             </TableBody>
           </Table>
-        </div>
+        )}
       </div>
 
       <AppointmentForm

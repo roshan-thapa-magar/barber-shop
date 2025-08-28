@@ -30,7 +30,10 @@ export default function ServicesPage() {
   const [editingService, setEditingService] = useState<Service | undefined>();
   const [formMode, setFormMode] = useState<"add" | "edit">("add");
 
-  // Fetch services
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
   const fetchServices = async () => {
     try {
       const res = await fetch("/api/services");
@@ -39,24 +42,16 @@ export default function ServicesPage() {
         id: s._id,
         service: s.type,
         price: s.price,
-        status: s.status || "available",
+        status: s.status || "active",
       }));
       setServices(mapped);
     } catch (err) {
-      console.error(err);
       toast.error("Failed to fetch services");
     }
   };
 
-  useEffect(() => {
-    fetchServices();
-  }, []);
-
-  // Filter safely
-  const filteredServices = services.filter(
-    (service) =>
-      service.service &&
-      service.service.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredServices = services.filter((service) =>
+    service.service?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleAddService = () => {
@@ -71,19 +66,19 @@ export default function ServicesPage() {
     setIsFormOpen(true);
   };
 
-  const handleDeleteService = async (serviceId: string) => {
+  const handleDeleteService = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this service?")) return;
     try {
-      await fetch(`/api/services/${serviceId}`, { method: "DELETE" });
-      setServices(services.filter((s) => s.id !== serviceId));
+      await fetch(`/api/services/${id}`, { method: "DELETE" });
+      setServices(services.filter((s) => s.id !== id));
       toast.success("Service deleted successfully");
-    } catch (err) {
-      console.error(err);
+    } catch {
       toast.error("Failed to delete service");
     }
   };
 
   const handleFormSubmit = async (
-    serviceData: Omit<Service, "id"> | Service
+    serviceData: Service | Omit<Service, "id">
   ) => {
     try {
       if (formMode === "add") {
@@ -97,13 +92,15 @@ export default function ServicesPage() {
           }),
         });
         const newServiceData = await res.json();
-        const newService: Service = {
-          id: newServiceData._id,
-          service: newServiceData.type,
-          price: newServiceData.price,
-          status: newServiceData.status,
-        };
-        setServices([...services, newService]);
+        setServices([
+          ...services,
+          {
+            id: newServiceData._id,
+            service: newServiceData.type,
+            price: newServiceData.price,
+            status: newServiceData.status,
+          },
+        ]);
         toast.success("Service added successfully");
       } else if (editingService) {
         const res = await fetch(`/api/services/${editingService.id}`, {
@@ -115,20 +112,23 @@ export default function ServicesPage() {
             status: (serviceData as Service).status,
           }),
         });
-        const updatedServiceData = await res.json();
-        const updatedService: Service = {
-          id: updatedServiceData._id,
-          service: updatedServiceData.type,
-          price: updatedServiceData.price,
-          status: updatedServiceData.status,
-        };
+        const updatedService = await res.json();
         setServices(
-          services.map((s) => (s.id === updatedService.id ? updatedService : s))
+          services.map((s) =>
+            s.id === updatedService._id
+              ? {
+                  id: updatedService._id,
+                  service: updatedService.type,
+                  price: updatedService.price,
+                  status: updatedService.status,
+                }
+              : s
+          )
         );
         toast.success("Service updated successfully");
       }
-    } catch (err) {
-      console.error(err);
+      setIsFormOpen(false);
+    } catch {
       toast.error("Failed to save service");
     }
   };
@@ -138,62 +138,39 @@ export default function ServicesPage() {
       case "active":
         return <Badge className="bg-green-100 text-green-800">Active</Badge>;
       case "inactive":
-        return (
-          <Badge variant="secondary" className="bg-red-100 text-red-800">
-            Inactive
-          </Badge>
-        );
+        return <Badge className="bg-red-100 text-red-800">Inactive</Badge>;
       default:
         return <Badge variant="outline">Unknown</Badge>;
     }
   };
 
-  const handleExportJSON = () => {
-    const jsonStr = JSON.stringify(services, null, 2);
-    const blob = new Blob([jsonStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "services.json";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast.success("JSON exported successfully");
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-4">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <h1 className="text-3xl font-bold">Services</h1>
         <div className="flex gap-2">
           <Button onClick={handleAddService}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Service
-          </Button>
-          <Button variant="outline" onClick={handleExportJSON}>
-            Export JSON
+            <Plus className="mr-2 h-4 w-4" /> Add Service
           </Button>
         </div>
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
           <CardTitle>Service Management</CardTitle>
-          <div className="flex items-center space-x-2">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search services..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
-              />
-            </div>
+          <div className="relative w-full md:max-w-sm">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search services..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8"
+            />
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border overflow-auto">
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-auto rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -206,16 +183,13 @@ export default function ServicesPage() {
               <TableBody>
                 {filteredServices.map((service) => (
                   <TableRow key={service.id}>
-                    <TableCell className="font-medium">
-                      {service.service}
-                    </TableCell>
+                    <TableCell>{service.service}</TableCell>
                     <TableCell>${service.price.toFixed(2)}</TableCell>
                     <TableCell>{getStatusBadge(service.status)}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -223,15 +197,13 @@ export default function ServicesPage() {
                           <DropdownMenuItem
                             onClick={() => handleEditService(service)}
                           >
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
+                            <Edit className="mr-2 h-4 w-4" /> Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleDeleteService(service.id)}
                             className="text-red-600"
                           >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -240,6 +212,34 @@ export default function ServicesPage() {
                 ))}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-4">
+            {filteredServices.map((service) => (
+              <div
+                key={service.id}
+                className="border rounded-lg p-4 bg-background space-y-2"
+              >
+                <div className="flex justify-between items-center">
+                  <p className="font-medium">{service.service}</p>
+                  {getStatusBadge(service.status)}
+                </div>
+                <p>Price: ${service.price.toFixed(2)}</p>
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" onClick={() => handleEditService(service)}>
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleDeleteService(service.id)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

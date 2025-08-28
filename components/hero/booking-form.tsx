@@ -8,6 +8,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useUserContext } from "@/context/UserContext";
 import { toast } from "sonner";
+import moment from "moment";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,7 @@ interface User {
   ageGroup?: "student" | "adult" | "child" | "young" | "other";
 }
 
+// Form validation schema
 const bookingSchema = z.object({
   name: z.string().min(2, "Name is required"),
   email: z.string().email("Invalid email address"),
@@ -51,7 +53,6 @@ const bookingSchema = z.object({
   customerType: z.string(),
   ageGroup: z.enum(["student", "adult", "child", "young", "other"]),
   paymentMethod: z.enum(["cash", "online"]),
-  myId: z.string(),
 });
 
 type BookingFormData = z.infer<typeof bookingSchema>;
@@ -74,7 +75,6 @@ export default function BookingForm() {
   } = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
-      myId: user?._id,
       name: user?.name || "",
       email: user?.email || "",
       phone: user?.phone || "",
@@ -109,7 +109,7 @@ export default function BookingForm() {
     fetchData();
   }, []);
 
-  const onSubmit: (data: BookingFormData) => Promise<void> = async (data) => {
+  const onSubmit = async (data: BookingFormData) => {
     if (status === "unauthenticated") {
       router.push("/login?callbackUrl=/appointment");
       return;
@@ -117,12 +117,24 @@ export default function BookingForm() {
 
     setLoading(true);
     try {
+      const selectedService = services.find((s) => s._id === data.service);
+      if (!selectedService) throw new Error("Selected service not found");
+
+      const selectedBarber = barbers.find((b) => b._id === data.barber);
+      if (!selectedBarber) throw new Error("Selected barber not found");
+
+      // Include myId in payload (once)
+      const payload = {
+        myId: user?._id,
+        ...data,
+        service: { type: selectedService.type, price: selectedService.price },
+        barber: selectedBarber.name,
+      };
+
       const res = await fetch("/api/appointments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...data,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const result = await res.json();
@@ -213,7 +225,7 @@ export default function BookingForm() {
               </motion.div>
             </div>
 
-            {/* Phone & schedule */}
+            {/* Phone & Schedule */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <motion.div variants={itemVariants}>
                 <Input
@@ -228,12 +240,12 @@ export default function BookingForm() {
                   </p>
                 )}
               </motion.div>
+
               <motion.div variants={itemVariants}>
                 <Input
-                  type="text"
-                  placeholder="Your Free schedule"
+                  type="datetime-local"
                   {...register("schedule")}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 w-full"
                 />
                 {errors.schedule && (
                   <p className="text-red-500 text-sm mt-1">
@@ -257,7 +269,7 @@ export default function BookingForm() {
                     {services.length > 0 ? (
                       services.map((service) => (
                         <SelectItem key={service._id} value={service._id}>
-                          {service.type} - ${service.price}
+                          {service.type} - {service.price}
                         </SelectItem>
                       ))
                     ) : (
