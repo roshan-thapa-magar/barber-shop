@@ -47,7 +47,7 @@ export async function PATCH(
   try {
     const { id } = params;
     const body: UpdateUserPayload = await request.json();
-    const { avatar, ...rest } = body;
+    const { avatar, password, ...rest } = body; // extract password separately
 
     const user = await UserModel.findById(id);
     if (!user) {
@@ -68,7 +68,14 @@ export async function PATCH(
       };
     }
 
+    // Update other fields
     Object.assign(user, rest);
+
+    // Update password only if it's provided and non-empty
+    if (password && password.trim().length >= 6) {
+      user.password = password; // pre-save hook in Mongoose will hash it
+    }
+
     await user.save();
 
     const userObj = user.toObject();
@@ -82,6 +89,7 @@ export async function PATCH(
     );
   }
 }
+
 
 // DELETE user
 export async function DELETE(

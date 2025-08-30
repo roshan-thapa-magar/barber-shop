@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { signOut } from "next-auth/react";
+import { useUserContext } from "@/context/UserContext";
 
 export const items = [
   {
@@ -30,6 +31,8 @@ export const items = [
 ];
 export function Header() {
   const pathname = usePathname();
+  const { user, reloadUser } = useUserContext();
+
   return (
     <header className="flex items-center justify-between px-4 py-2 border-b bg-background">
       {/* Left side */}
@@ -48,8 +51,8 @@ export function Header() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Avatar className="h-6 w-6 cursor-pointer">
-              <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-              <AvatarFallback>B</AvatarFallback>
+              <AvatarImage src={user?.image} alt="User" />
+              <AvatarFallback>{user?.name?.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-48" align="end">
