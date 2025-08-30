@@ -283,7 +283,7 @@ export function AppointmentForm({
                       <div className="flex justify-between items-center w-full gap-4">
                         <span>{service.type}</span>
                         <span className="text-sm text-muted-foreground">
-                          ({service.price})
+                          ( रु {service.price})
                         </span>
                       </div>
                     </SelectItem>

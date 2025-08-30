@@ -77,11 +77,11 @@ export default function Header() {
                   <DropdownMenuTrigger asChild>
                     <Avatar className="h-6 w-6 cursor-pointer">
                       <AvatarImage
-                        src={"https://github.com/shadcn.png"}
-                        alt={session?.user?.name ?? "User"}
+                        src={user?.image}
+                        alt={user?.name ?? "User"}
                       />
                       <AvatarFallback>
-                        {session?.user?.name?.charAt(0).toUpperCase()}
+                        {user?.name?.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                   </DropdownMenuTrigger>
@@ -89,14 +89,16 @@ export default function Header() {
                     <DropdownMenuLabel className="flex items-center gap-2 font-medium">
                       <Avatar className="h-8 w-8">
                         <AvatarImage
-                          src={"https://github.com/shadcn.png"}
+                          src={user?.image}
                           alt={user?.name ?? "User"}
                         />
                         <AvatarFallback>
                           {user?.name?.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      {user?.email}
+                      <span className="truncate max-w-[calc(100%-2rem)]">
+                        {user?.email}
+                      </span>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
 
@@ -166,7 +168,7 @@ export default function Header() {
 
                 {session?.user ? (
                   <>
-                    <Link href="/profile" className="hover:text-amber-400">
+                    <Link href="/account" className="hover:text-amber-400">
                       Profile
                     </Link>
                     <button

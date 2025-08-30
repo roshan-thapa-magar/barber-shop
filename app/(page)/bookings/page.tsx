@@ -508,7 +508,7 @@ export default function AppointmentsPage() {
                   <TableCell>{appointment.phone}</TableCell>
                   <TableCell>{appointment.barber}</TableCell>
                   <TableCell>
-                    {appointment.service.type} ({appointment.service.price})
+                    {appointment.service.type} ( रु {appointment.service.price})
                   </TableCell>
                   <TableCell>
                     {moment(appointment.schedule).format("h:mm A")}

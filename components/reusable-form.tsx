@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import Image from "next/image";
 import { Upload, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -52,7 +53,7 @@ export interface ReusableFormProps {
   title?: string;
   description?: string;
   fields: FormFieldConfig[];
-  onSubmit: (data: any) => void;
+  onSubmit: (data: Record<string, any>) => void;
   submitText?: string;
   isLoading?: boolean;
   defaultValues?: Record<string, any>;
@@ -85,7 +86,7 @@ export function ReusableForm({
             fieldSchema = z.coerce.number();
             break;
           case "image":
-            fieldSchema = z.any().optional();
+            fieldSchema = z.instanceof(File).optional();
             break;
           default:
             fieldSchema = z.string();
@@ -102,8 +103,11 @@ export function ReusableForm({
     return z.object(schemaFields);
   };
 
-  const form = useForm({
-    resolver: zodResolver(createSchema()),
+  const schema = createSchema();
+  type FormValues = z.infer<typeof schema>;
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
     defaultValues,
   });
 
@@ -121,14 +125,14 @@ export function ReusableForm({
         }));
       };
       reader.readAsDataURL(file);
-      form.setValue(fieldName, file);
+      form.setValue(fieldName as keyof FormValues, file as any);
     } else {
       setImagePreview((prev) => {
         const newPreview = { ...prev };
         delete newPreview[fieldName];
         return newPreview;
       });
-      form.setValue(fieldName, null);
+      form.setValue(fieldName as keyof FormValues, undefined as any);
     }
   };
 
@@ -139,12 +143,16 @@ export function ReusableForm({
           <FormField
             key={field.name}
             control={form.control}
-            name={field.name}
+            name={field.name as keyof FormValues}
             render={({ field: formField }) => (
               <FormItem>
                 <FormLabel>{field.label}</FormLabel>
                 <FormControl>
-                  <Textarea placeholder={field.placeholder} {...formField} />
+                  <Textarea
+                    placeholder={field.placeholder}
+                    {...formField}
+                    value={formField.value as string | undefined}
+                  />
                 </FormControl>
                 {field.description && (
                   <FormDescription>{field.description}</FormDescription>
@@ -160,27 +168,27 @@ export function ReusableForm({
           <FormField
             key={field.name}
             control={form.control}
-            name={field.name}
+            name={field.name as keyof FormValues}
             render={({ field: formField }) => (
               <FormItem>
                 <FormLabel>{field.label}</FormLabel>
-                <Select
-                  onValueChange={formField.onChange}
-                  defaultValue={formField.value}
-                >
-                  <FormControl>
+                <FormControl>
+                  <Select
+                    onValueChange={formField.onChange}
+                    value={(formField.value as string) || ""}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder={field.placeholder} />
                     </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {field.options?.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                    <SelectContent>
+                      {field.options?.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormControl>
                 {field.description && (
                   <FormDescription>{field.description}</FormDescription>
                 )}
@@ -195,8 +203,8 @@ export function ReusableForm({
           <FormField
             key={field.name}
             control={form.control}
-            name={field.name}
-            render={({ field: formField }) => (
+            name={field.name as keyof FormValues}
+            render={() => (
               <FormItem>
                 <FormLabel>{field.label}</FormLabel>
                 <FormControl>
@@ -204,7 +212,7 @@ export function ReusableForm({
                     <div className="flex items-center justify-center w-full">
                       <label
                         htmlFor={`${field.name}-upload`}
-                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500"
+                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-800 dark:bg-gray-700 dark:border-gray-600 dark:hover:border-gray-500"
                       >
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                           <Upload className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" />
@@ -234,13 +242,13 @@ export function ReusableForm({
                     {imagePreview[field.name] && (
                       <Card>
                         <CardContent className="p-4">
-                          <div className="relative">
-                            <img
-                              src={
-                                imagePreview[field.name] || "/placeholder.svg"
-                              }
+                          <div className="relative w-full h-32">
+                            <Image
+                              src={imagePreview[field.name]}
                               alt="Preview"
-                              className="w-full h-32 object-cover rounded-md"
+                              fill
+                              style={{ objectFit: "cover" }}
+                              className="rounded-md"
                             />
                             <Button
                               type="button"
@@ -273,7 +281,7 @@ export function ReusableForm({
           <FormField
             key={field.name}
             control={form.control}
-            name={field.name}
+            name={field.name as keyof FormValues}
             render={({ field: formField }) => (
               <FormItem>
                 <FormLabel>{field.label}</FormLabel>
@@ -282,6 +290,11 @@ export function ReusableForm({
                     type={field.type}
                     placeholder={field.placeholder}
                     {...formField}
+                    value={
+                      field.type === "number"
+                        ? (formField.value as number | undefined)
+                        : (formField.value as string | undefined)
+                    }
                   />
                 </FormControl>
                 {field.description && (
@@ -293,6 +306,10 @@ export function ReusableForm({
           />
         );
     }
+  };
+
+  const handleSubmit: SubmitHandler<FormValues> = (data) => {
+    onSubmit(data); // data now always matches schema
   };
 
   return (
@@ -307,9 +324,8 @@ export function ReusableForm({
       )}
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
           {fields.map(renderField)}
-
           <Button type="submit" disabled={isLoading}>
             {isLoading ? "Loading..." : submitText}
           </Button>

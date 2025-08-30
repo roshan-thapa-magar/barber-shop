@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongodb";
 import InventoryModel from "@/model/inventory";
 
-// ✅ Get single item by ID
 export async function GET(
   req: Request,
   { params }: { params: { id: string } }
@@ -10,11 +9,10 @@ export async function GET(
   await dbConnect();
   try {
     const item = await InventoryModel.findById(params.id);
-    if (!item) {
+    if (!item)
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
-    }
     return NextResponse.json(item, { status: 200 });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch item" },
       { status: 500 }
@@ -22,7 +20,6 @@ export async function GET(
   }
 }
 
-// ✅ Update item (PUT)
 export async function PUT(
   req: Request,
   { params }: { params: { id: string } }
@@ -33,13 +30,10 @@ export async function PUT(
     const updated = await InventoryModel.findByIdAndUpdate(params.id, body, {
       new: true,
     });
-
-    if (!updated) {
+    if (!updated)
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
-    }
-
     return NextResponse.json(updated, { status: 200 });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to update item" },
       { status: 400 }
@@ -47,7 +41,6 @@ export async function PUT(
   }
 }
 
-// ✅ Delete item
 export async function DELETE(
   req: Request,
   { params }: { params: { id: string } }
@@ -55,13 +48,10 @@ export async function DELETE(
   await dbConnect();
   try {
     const deleted = await InventoryModel.findByIdAndDelete(params.id);
-
-    if (!deleted) {
+    if (!deleted)
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
-    }
-
     return NextResponse.json({ message: "Item deleted successfully" });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to delete item" },
       { status: 500 }

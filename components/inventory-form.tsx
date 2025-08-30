@@ -1,8 +1,6 @@
 "use client";
 
-import type React from "react";
-
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,19 +18,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-
-interface InventoryItem {
-  id: string;
-  name: string;
-  qty: number;
-  price: number;
-  status: "In Stock" | "Low Stock" | "Out of Stock";
-}
+import type { InventoryItem, InventoryStatus } from "@/types/inventory";
 
 interface InventoryFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (item: Omit<InventoryItem, "id"> | InventoryItem) => void;
+  onSubmit: (item: InventoryItem) => void;
   initialData?: InventoryItem;
   mode: "add" | "edit";
 }
@@ -44,71 +35,42 @@ export function InventoryForm({
   initialData,
   mode,
 }: InventoryFormProps) {
-  const [formData, setFormData] = useState({
-    name: initialData?.name || "",
-    qty: initialData?.qty || 0,
-    price: initialData?.price || 0,
-    status: initialData?.status || ("In Stock" as const),
+  const [formData, setFormData] = useState<InventoryItem>({
+    name: "",
+    quantity: 0,
+    price: 0,
+    status: "In Stock",
   });
+
+  useEffect(() => {
+    if (initialData) setFormData({ ...initialData });
+    else setFormData({ name: "", quantity: 0, price: 0, status: "In Stock" });
+  }, [initialData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.name.trim()) return toast.error("Item name is required");
+    if (formData.quantity < 0)
+      return toast.error("Quantity cannot be negative");
+    if (formData.price <= 0) return toast.error("Price must be greater than 0");
 
-    if (!formData.name.trim()) {
-      toast.error("Item name is required");
-      return;
-    }
-
-    if (formData.qty < 0) {
-      toast.error("Quantity cannot be negative");
-      return;
-    }
-
-    if (formData.price <= 0) {
-      toast.error("Price must be greater than 0");
-      return;
-    }
-
-    const itemData = {
-      ...formData,
-      ...(mode === "edit" && initialData ? { id: initialData.id } : {}),
-    };
-
-    onSubmit(itemData);
+    onSubmit(formData);
     onClose();
-
-    // Reset form
-    setFormData({
-      name: "",
-      qty: 0,
-      price: 0,
-      status: "In Stock",
-    });
-
-    toast.success(
-      `Inventory item ${mode === "add" ? "added" : "updated"} successfully`
-    );
+    toast.success(`${mode === "add" ? "Added" : "Updated"} successfully`);
   };
 
   const handleClose = () => {
     onClose();
-    // Reset form when closing
-    setFormData({
-      name: initialData?.name || "",
-      qty: initialData?.qty || 0,
-      price: initialData?.price || 0,
-      status: initialData?.status || "In Stock",
-    });
+    if (initialData) setFormData({ ...initialData });
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>
-            {mode === "add" ? "Add New Item" : "Edit Item"}
-          </DialogTitle>
+          <DialogTitle>{mode === "add" ? "Add Item" : "Edit Item"}</DialogTitle>
         </DialogHeader>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Item Name</Label>
@@ -124,38 +86,33 @@ export function InventoryForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="qty">Quantity</Label>
+            <Label htmlFor="quantity">Quantity</Label>
             <Input
-              id="qty"
+              id="quantity"
               type="number"
-              min="0"
-              value={formData.qty}
+              min={0}
+              value={formData.quantity}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  qty: Number.parseInt(e.target.value) || 0,
+                  quantity: Number(e.target.value) || 0,
                 })
               }
-              placeholder="Enter quantity"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="price">Price ($)</Label>
+            <Label htmlFor="price">Price (₨)</Label>
             <Input
               id="price"
               type="number"
-              min="0"
-              step="0.01"
+              min={0}
+              step={0.01}
               value={formData.price}
               onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  price: Number.parseFloat(e.target.value) || 0,
-                })
+                setFormData({ ...formData, price: Number(e.target.value) || 0 })
               }
-              placeholder="Enter price"
               required
             />
           </div>
@@ -164,9 +121,9 @@ export function InventoryForm({
             <Label htmlFor="status">Status</Label>
             <Select
               value={formData.status}
-              onValueChange={(
-                value: "In Stock" | "Low Stock" | "Out of Stock"
-              ) => setFormData({ ...formData, status: value })}
+              onValueChange={(value: InventoryStatus) =>
+                setFormData({ ...formData, status: value })
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select status" />

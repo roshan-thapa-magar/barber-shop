@@ -8,7 +8,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useUserContext } from "@/context/UserContext";
 import { toast } from "sonner";
-import moment from "moment";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useEffect, useState } from "react";
 
 // Types
 interface Barber {
@@ -58,7 +57,7 @@ const bookingSchema = z.object({
 type BookingFormData = z.infer<typeof bookingSchema>;
 
 export default function BookingForm() {
-  const { user } = useUserContext() as { user: User };
+  const { user, reloadUser } = useUserContext();
   const { status } = useSession();
   const router = useRouter();
 
@@ -66,6 +65,7 @@ export default function BookingForm() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Initialize form
   const {
     register,
     handleSubmit,
@@ -75,17 +75,30 @@ export default function BookingForm() {
   } = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
-      name: user?.name || "",
-      email: user?.email || "",
-      phone: user?.phone || "",
+      name: "",
+      email: "",
+      phone: "",
       schedule: "",
       service: "",
       barber: "",
-      customerType: user?.customerType || "regular",
-      ageGroup: user?.ageGroup || "other",
+      customerType: "regular",
+      ageGroup: "other",
       paymentMethod: "cash",
     },
   });
+
+  // Update form when user data is loaded
+  useEffect(() => {
+    if (!user) return;
+    setValue("name", user.name || "");
+    setValue("email", user.email || "");
+    setValue("phone", user.phone || "");
+    setValue("customerType", user.customerType || "regular");
+    setValue(
+      "ageGroup",
+      user.ageGroup as "student" | "adult" | "child" | "young" | "other"
+    );
+  }, [user, setValue]);
 
   // Fetch barbers and services
   useEffect(() => {
@@ -123,7 +136,6 @@ export default function BookingForm() {
       const selectedBarber = barbers.find((b) => b._id === data.barber);
       if (!selectedBarber) throw new Error("Selected barber not found");
 
-      // Include myId in payload (once)
       const payload = {
         myId: user?._id,
         ...data,
@@ -141,6 +153,7 @@ export default function BookingForm() {
       if (!res.ok) throw new Error(result.error);
 
       toast.success("Appointment booked successfully!");
+      reloadUser(); // refresh user context
     } catch (error: any) {
       console.error(error);
       toast.error(error.message || "Booking failed");

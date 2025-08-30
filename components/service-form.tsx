@@ -97,7 +97,7 @@ export function ServiceForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="price">Price ($)</Label>
+            <Label htmlFor="price">Price ( रु )</Label>
             <Input
               id="price"
               type="number"

@@ -1,11 +1,17 @@
 import mongoose, { Schema, models } from "mongoose";
 
+export const InventoryStatus = {
+  IN_STOCK: "in-stock",
+  LOW_STOCK: "low-stock",
+  OUT_OF_STOCK: "out-of-stock",
+} as const;
+
+type InventoryStatusType =
+  (typeof InventoryStatus)[keyof typeof InventoryStatus];
+
 const inventorySchema = new Schema(
   {
-    name: {
-      type: String,
-      required: [true, "Item name is required"],
-    },
+    name: { type: String, required: [true, "Item name is required"] },
     quantity: {
       type: Number,
       required: [true, "Quantity is required"],
@@ -18,8 +24,8 @@ const inventorySchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["in-stock", "out-of-stock", "low-stock"],
-      default: "in-stock",
+      enum: Object.values(InventoryStatus),
+      default: InventoryStatus.IN_STOCK,
     },
   },
   { timestamps: true }
@@ -29,3 +35,4 @@ const InventoryModel =
   models.Inventory || mongoose.model("Inventory", inventorySchema);
 
 export default InventoryModel;
+export type { InventoryStatusType };

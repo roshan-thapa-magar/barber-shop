@@ -8,13 +8,22 @@ await dbConnect();
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const statusParam = searchParams.get("status"); // "scheduled,pending"
 
-    let filter = {};
+    const statusParam = searchParams.get("status"); // e.g., "scheduled,pending"
+    const myIdParam = searchParams.get("myId"); // e.g., user id stored in myId field
+
+    let filter: any = {};
+
     if (statusParam) {
-      const statusArray = statusParam.split(","); // ["scheduled", "pending"]
-      filter = { status: { $in: statusArray } };
+      const statusArray = statusParam.split(",");
+      filter.status = { $in: statusArray };
     }
+
+    if (myIdParam) {
+      filter.myId = myIdParam; // filter using myId field in DB
+    }
+
+    console.log("Final filter:", filter);
 
     const appointments = await AppointmentModel.find(filter);
     return NextResponse.json(appointments);

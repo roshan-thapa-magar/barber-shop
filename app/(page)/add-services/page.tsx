@@ -22,6 +22,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ServiceForm, type Service } from "@/components/service-form";
 import { Plus, Search, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+// Define the type for API response
+interface ServiceResponse {
+  _id: string;
+  type: string;
+  price: number;
+  status?: "active" | "inactive";
+}
 
 export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
@@ -37,15 +44,18 @@ export default function ServicesPage() {
   const fetchServices = async () => {
     try {
       const res = await fetch("/api/services");
-      const data = await res.json();
-      const mapped = data.map((s: any) => ({
+      const data: ServiceResponse[] = await res.json();
+
+      const mapped: Service[] = data.map((s) => ({
         id: s._id,
         service: s.type,
         price: s.price,
         status: s.status || "active",
       }));
+
       setServices(mapped);
-    } catch (err) {
+    } catch (_err) {
+      // _err is intentionally unused
       toast.error("Failed to fetch services");
     }
   };
@@ -184,7 +194,7 @@ export default function ServicesPage() {
                 {filteredServices.map((service) => (
                   <TableRow key={service.id}>
                     <TableCell>{service.service}</TableCell>
-                    <TableCell>${service.price.toFixed(2)}</TableCell>
+                    <TableCell> रु {service.price.toFixed(2)}</TableCell>
                     <TableCell>{getStatusBadge(service.status)}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>

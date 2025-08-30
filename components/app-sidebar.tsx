@@ -54,11 +54,6 @@ export const items = [
     icon: Boxes,
   },
   {
-    title: "Add Offline User",
-    url: "/offline-clients",
-    icon: UserPlus,
-  },
-  {
     title: "Manage Report",
     url: "/reports",
     icon: BarChart3,
