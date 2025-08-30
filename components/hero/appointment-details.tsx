@@ -58,7 +58,7 @@ type FormData = {
 };
 
 export default function AppointmentDetails() {
-  const { user } = useUserContext();
+  const { user, reloadUser } = useUserContext();
   const myId = user?._id;
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -77,7 +77,9 @@ export default function AppointmentDetails() {
 
   const [services, setServices] = useState<Service[]>([]);
   const [barbers, setBarbers] = useState<Barber[]>([]);
-
+  useEffect(() => {
+    reloadUser();
+  }, []);
   // Fetch appointments
   useEffect(() => {
     if (!myId) return;

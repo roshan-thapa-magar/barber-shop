@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
+import { useUserContext } from "@/context/UserContext";
+
 import {
   Table,
   TableHeader,
@@ -215,7 +217,7 @@ function SellItemModal({
         </DialogHeader>
         <div className="space-y-4">
           <Input
-            type="string"
+            type="number"
             min={1}
             max={item.quantity}
             value={quantity}
@@ -252,6 +254,8 @@ export default function InventoryPage() {
     from: string;
     to: string;
   }>({ from: "", to: "" });
+
+  const { user } = useUserContext();
 
   // -----------------------
   // Fetch Inventory
@@ -312,6 +316,7 @@ export default function InventoryPage() {
     fetchInventory();
     fetchSales();
   }, [fetchInventory, fetchSales]);
+
   useEffect(() => {
     if (salesFilter !== "custom") fetchSales();
   }, [salesFilter, fetchSales]);
@@ -426,6 +431,7 @@ export default function InventoryPage() {
   const filteredInventory = inventory.filter((i) =>
     i.name.toLowerCase().includes(search.toLowerCase())
   );
+
   const getStatusColor = (status: InventoryStatus) => {
     switch (status) {
       case "in-stock":
@@ -439,6 +445,18 @@ export default function InventoryPage() {
     }
   };
 
+  // Calculate total inventory price
+  const totalInventoryPrice = inventory.reduce(
+    (acc, i) => acc + i.price * i.quantity,
+    0
+  );
+
+  // Calculate total sales amount
+  const totalSalesAmount = sales.reduce(
+    (acc, s) => acc + s.price * s.quantity,
+    0
+  );
+
   // -----------------------
   // Render
   // -----------------------
@@ -450,9 +468,31 @@ export default function InventoryPage() {
           <h1 className="text-3xl font-bold">Inventory Management</h1>
           <p className="text-muted-foreground">Manage inventory and sales</p>
         </div>
-        <Button onClick={openAddForm} className="w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" /> Add Item
-        </Button>
+        {user?.role === "admin" && (
+          <Button onClick={openAddForm} className="w-full sm:w-auto">
+            <Plus className="mr-2 h-4 w-4" /> Add Item
+          </Button>
+        )}
+      </div>
+
+      {/* Summary */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <Card className="flex-1">
+          <CardContent>
+            <h2 className="text-lg font-medium">Total Inventory Value</h2>
+            <p className="text-2xl font-bold">
+              रु {totalInventoryPrice.toFixed(2)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="flex-1">
+          <CardContent>
+            <h2 className="text-lg font-medium">Total Sales Amount</h2>
+            <p className="text-2xl font-bold">
+              रु {totalSalesAmount.toFixed(2)}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Inventory Table */}
@@ -482,7 +522,7 @@ export default function InventoryPage() {
                 <TableRow key={item.id}>
                   <TableCell>{item.name}</TableCell>
                   <TableCell>{item.quantity}</TableCell>
-                  <TableCell>₨{item.price.toFixed(2)}</TableCell>
+                  <TableCell>रु {item.price.toFixed(2)}</TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(item.status)}>
                       {displayStatus[item.status]}
@@ -496,21 +536,25 @@ export default function InventoryPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openEditForm(item)}>
-                          <Edit className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
+                        {user?.role === "admin" && (
+                          <DropdownMenuItem onClick={() => openEditForm(item)}>
+                            <Edit className="mr-2 h-4 w-4" /> Edit
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           onClick={() => setSellingItem(item)}
                           className="text-blue-600"
                         >
                           <DollarSign className="mr-2 h-4 w-4" /> Sale
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => deleteItem(item.id)}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
+                        {user?.role === "admin" && (
+                          <DropdownMenuItem
+                            onClick={() => deleteItem(item.id)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -592,21 +636,23 @@ export default function InventoryPage() {
                   <TableRow key={s.id}>
                     <TableCell>{s.name}</TableCell>
                     <TableCell>{s.quantity}</TableCell>
-                    <TableCell>₨{s.price.toFixed(2)}</TableCell>
+                    <TableCell>रु {s.price.toFixed(2)}</TableCell>
                     <TableCell>
                       {s.createdAt
                         ? new Date(s.createdAt).toLocaleString()
                         : "-"}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => deleteSale(s.id)}
-                      >
-                        Delete
-                      </Button>
-                    </TableCell>
+                    {user?.role === "admin" && (
+                      <TableCell className="text-right">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => deleteSale(s.id)}
+                        >
+                          Delete
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               ) : (

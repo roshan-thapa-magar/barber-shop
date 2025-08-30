@@ -28,7 +28,7 @@ import { ClientForm } from "@/components/client-form";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
+import { useUserContext } from "@/context/UserContext";
 interface Client {
   id?: string;
   name: string;
@@ -70,6 +70,7 @@ export default function ClientsPage() {
     "all" | "regular" | "VIP" | "new"
   >("all");
   const [editingClient, setEditingClient] = useState<Client | undefined>();
+  const { user } = useUserContext();
 
   useEffect(() => {
     async function fetchClients() {
@@ -255,12 +256,14 @@ export default function ClientsPage() {
                         >
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDeleteClient(client.id)}
-                          className="text-destructive"
-                        >
-                          Delete
-                        </DropdownMenuItem>
+                        {user?.role === "admin" && (
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteClient(client.id)}
+                            className="text-destructive"
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -295,13 +298,15 @@ export default function ClientsPage() {
                   <Button size="sm" onClick={() => setEditingClient(client)}>
                     Edit
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleDeleteClient(client.id)}
-                  >
-                    Delete
-                  </Button>
+                  {user?.role === "admin" && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteClient(client.id)}
+                    >
+                      Delete
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

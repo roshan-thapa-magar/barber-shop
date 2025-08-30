@@ -168,7 +168,7 @@ export default function BookingForm() {
   };
 
   return (
-    <section className="min-h-full flex flex-col lg:flex-row">
+    <section className="h-screen flex flex-col lg:flex-row">
       {/* Left image */}
       <div className="lg:w-1/2 relative h-64 lg:h-auto">
         <Image

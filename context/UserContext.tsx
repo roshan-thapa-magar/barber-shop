@@ -20,6 +20,7 @@ type User = {
   status: string;
   image: string;
   avatar?: string;
+  role?: string;
 };
 
 type UserContextType = {

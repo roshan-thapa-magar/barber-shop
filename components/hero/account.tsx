@@ -30,9 +30,7 @@ import {
 const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
-  phone: z
-    .string()
-    .regex(/^\+?[0-9]{7,15}$/, "Invalid phone number"),
+  phone: z.string().regex(/^\+?[0-9]{7,15}$/, "Invalid phone number"),
   password: z
     .string()
     .optional()
@@ -62,20 +60,22 @@ export default function ProfilePage() {
       image: "",
     },
   });
-
+  useEffect(() => {
+    reloadUser();
+  }, []);
   // Populate form when user data is loaded
   useEffect(() => {
     if (!user) return;
 
-    const ageGroup =
-      ["adult", "student", "old", "child"].includes(user.ageGroup)
-        ? (user.ageGroup as "adult" | "student" | "old" | "child")
-        : "adult";
+    const ageGroup = ["adult", "student", "old", "child"].includes(
+      user.ageGroup
+    )
+      ? (user.ageGroup as "adult" | "student" | "old" | "child")
+      : "adult";
 
-    const customerType =
-      ["regular", "VIP", "new"].includes(user.customerType)
-        ? (user.customerType as "regular" | "VIP" | "new")
-        : "new";
+    const customerType = ["regular", "VIP", "new"].includes(user.customerType)
+      ? (user.customerType as "regular" | "VIP" | "new")
+      : "new";
 
     form.reset({
       name: user.name || "",
@@ -132,8 +132,7 @@ export default function ProfilePage() {
   };
 
   // Check if any changes (form fields or avatar)
-  const hasChanges =
-    form.formState.isDirty || (filePreview !== user?.image);
+  const hasChanges = form.formState.isDirty || filePreview !== user?.image;
 
   return (
     <div className="min-h-full flex flex-col items-center p-6 lg:p-12 mt-16 bg-zinc-950">
@@ -151,7 +150,9 @@ export default function ProfilePage() {
                   {filePreview ? (
                     <AvatarImage src={filePreview} />
                   ) : (
-                    <AvatarFallback>{form.getValues("name")?.[0]}</AvatarFallback>
+                    <AvatarFallback>
+                      {form.getValues("name")?.[0]}
+                    </AvatarFallback>
                   )}
                 </Avatar>
                 <input
@@ -189,7 +190,11 @@ export default function ProfilePage() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" {...field} placeholder="Enter your email" />
+                      <Input
+                        type="email"
+                        {...field}
+                        placeholder="Enter your email"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -203,7 +208,11 @@ export default function ProfilePage() {
                   <FormItem>
                     <FormLabel>Phone</FormLabel>
                     <FormControl>
-                      <Input type="tel" {...field} placeholder="+977 9800000000" />
+                      <Input
+                        type="tel"
+                        {...field}
+                        placeholder="+977 9800000000"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -217,7 +226,11 @@ export default function ProfilePage() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" {...field} placeholder="Enter new password" />
+                      <Input
+                        type="password"
+                        {...field}
+                        placeholder="Enter new password"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
