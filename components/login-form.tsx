@@ -30,6 +30,20 @@ export function LoginForm({
 
   // ✅ Redirect if logged in
   useEffect(() => {
+    const redirectByRole = (role: string) => {
+      switch (role) {
+        case "admin":
+        case "barber":
+          router.replace("/dashboard");
+          break;
+        case "user":
+          router.replace("/");
+          break;
+        default:
+          router.replace("/");
+      }
+    };
+
     if (status === "authenticated" && session?.user?.role) {
       redirectByRole(session.user.role);
     }

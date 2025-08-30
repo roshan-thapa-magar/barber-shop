@@ -1,6 +1,4 @@
 import React from "react";
-import Header from "@/components/hero/header";
-import Footer from "@/components/hero/footer";
 import About from "@/components/hero/about";
 import Services from "@/components/hero/services";
 import Hero from "@/components/about/hero";

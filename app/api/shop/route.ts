@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongodb";
-import ShopModel from "@/model/shop";
+import ShopModel, { IShop } from "@/model/shop"; // make sure your model exports an interface IShop
+
+// Helper to safely extract error messages
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "An unknown error occurred";
 
 // GET: fetch latest shop status
 export async function GET() {
@@ -13,8 +17,11 @@ export async function GET() {
       openingTime: shop?.openingTime || null,
       closingTime: shop?.closingTime || null,
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 }
+    );
   }
 }
 
@@ -22,14 +29,17 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     await dbConnect();
-    const body = await req.json();
+    const body: Partial<IShop> = await req.json();
 
     const shop = new ShopModel(body);
     await shop.save();
 
     return NextResponse.json(shop, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  } catch (error: unknown) {
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 400 }
+    );
   }
 }
 
@@ -37,7 +47,7 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   try {
     await dbConnect();
-    const body = await req.json();
+    const body: Partial<IShop> = await req.json();
 
     let shop = await ShopModel.findOne().sort({ createdAt: -1 });
 
@@ -54,7 +64,10 @@ export async function PUT(req: Request) {
       openingTime: shop.openingTime,
       closingTime: shop.closingTime,
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  } catch (error: unknown) {
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 400 }
+    );
   }
 }

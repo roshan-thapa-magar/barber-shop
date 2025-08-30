@@ -28,7 +28,6 @@ import { ClientForm } from "@/components/client-form";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CardDescription, CardTitle } from "@/components/ui/card";
 
 interface Client {
   id?: string;
@@ -36,6 +35,15 @@ interface Client {
   email: string;
   phone: string;
   ageGroup: "adult" | "student" | "old" | "child";
+  customerType: "regular" | "VIP" | "new";
+}
+
+interface ClientApiResponse {
+  _id: string;
+  name: string;
+  email: string;
+  phone: string;
+  ageGroup: string;
   customerType: "regular" | "VIP" | "new";
 }
 
@@ -58,7 +66,9 @@ const mapAgeGroupToApi = (ageGroup: Client["ageGroup"]): string => ageGroup;
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [customerTypeFilter, setCustomerTypeFilter] = useState("all");
+  const [customerTypeFilter, setCustomerTypeFilter] = useState<
+    "all" | "regular" | "VIP" | "new"
+  >("all");
   const [editingClient, setEditingClient] = useState<Client | undefined>();
 
   useEffect(() => {
@@ -66,8 +76,8 @@ export default function ClientsPage() {
       try {
         const res = await fetch("/api/users?role=user");
         if (!res.ok) throw new Error("Failed to fetch clients");
-        const data = await res.json();
-        const clientsData = data.map((c: any) => ({
+        const data: ClientApiResponse[] = await res.json();
+        const clientsData: Client[] = data.map((c) => ({
           id: c._id,
           name: c.name || "",
           email: c.email || "",
@@ -76,8 +86,8 @@ export default function ClientsPage() {
           customerType: c.customerType || "new",
         }));
         setClients(clientsData);
-      } catch (err: any) {
-        toast.error(err.message);
+      } catch (err: unknown) {
+        if (err instanceof Error) toast.error(err.message);
       }
     }
     fetchClients();
@@ -95,7 +105,7 @@ export default function ClientsPage() {
   });
 
   const handleSaveClient = async (clientData: Client) => {
-    if (!clientData.id) return; // No adding, only editing
+    if (!clientData.id) return; // Only editing
     try {
       const payload = {
         ...clientData,
@@ -107,7 +117,10 @@ export default function ClientsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const updatedClient = await res.json();
+
+      if (!res.ok) throw new Error("Failed to update client");
+
+      const updatedClient: ClientApiResponse = await res.json();
       setClients((prev) =>
         prev.map((c) =>
           c.id === updatedClient._id
@@ -121,8 +134,8 @@ export default function ClientsPage() {
       );
       toast.success("Client updated successfully!");
       setEditingClient(undefined);
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
     }
   };
 
@@ -133,8 +146,8 @@ export default function ClientsPage() {
       if (!res.ok) throw new Error("Failed to delete client");
       setClients((prev) => prev.filter((c) => c.id !== id));
       toast.success("Client deleted successfully!");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
     }
   };
 
@@ -184,7 +197,9 @@ export default function ClientsPage() {
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select
             value={customerTypeFilter}
-            onValueChange={setCustomerTypeFilter}
+            onValueChange={(value) =>
+              setCustomerTypeFilter(value as "all" | "regular" | "VIP" | "new")
+            }
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by type" />
@@ -199,7 +214,7 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      {/* Table for Desktop */}
+      {/* Table */}
       <div className="hidden md:block overflow-x-auto rounded-lg border">
         {filteredClients.length === 0 ? (
           <p className="text-center py-6 text-muted-foreground">

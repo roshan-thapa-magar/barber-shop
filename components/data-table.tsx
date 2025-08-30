@@ -107,7 +107,7 @@ export function DataTable<TData, TValue>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
+                  data-state={row.getIsSelected() ? "selected" : undefined}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -136,18 +136,29 @@ export function DataTable<TData, TValue>({
   );
 }
 
-// Helper function to create sortable column header
-export function createSortableHeader(title: string) {
-  return ({ column }: { column: any }) => {
-    return (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="h-auto p-0 font-semibold"
-      >
-        {title}
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    );
+// Strongly typed sortable header component
+interface SortableHeaderProps {
+  title: string;
+  column: {
+    toggleSorting: (desc?: boolean) => void;
+    getIsSorted: () => "asc" | "desc" | false;
   };
 }
+
+export const SortableHeader: React.FC<SortableHeaderProps> = ({
+  title,
+  column,
+}) => {
+  return (
+    <Button
+      variant="ghost"
+      onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      className="h-auto p-0 font-semibold"
+    >
+      {title}
+      <ArrowUpDown className="ml-2 h-4 w-4" />
+    </Button>
+  );
+};
+
+SortableHeader.displayName = "SortableHeader";

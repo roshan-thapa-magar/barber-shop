@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import Image from "next/image";
 
 // Types
 interface Barber {
@@ -30,15 +31,6 @@ interface Service {
   _id: string;
   type: string;
   price: number;
-}
-
-interface User {
-  _id?: string;
-  name?: string;
-  email?: string;
-  phone?: string;
-  customerType?: string;
-  ageGroup?: "student" | "adult" | "child" | "young" | "other";
 }
 
 // Form validation schema
@@ -65,7 +57,6 @@ export default function BookingForm() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Initialize form
   const {
     register,
     handleSubmit,
@@ -87,7 +78,7 @@ export default function BookingForm() {
     },
   });
 
-  // Update form when user data is loaded
+  // Update form values when user is loaded
   useEffect(() => {
     if (!user) return;
     setValue("name", user.name || "");
@@ -113,12 +104,15 @@ export default function BookingForm() {
         if (!serviceRes.ok) throw new Error("Failed to fetch services");
         const serviceData: Service[] = await serviceRes.json();
         setServices(serviceData);
-      } catch (error) {
-        console.error(error);
-        toast.error("Failed to load barbers or services");
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to load barbers or services";
+        console.error(message);
+        toast.error(message);
       }
     }
-
     fetchData();
   }, []);
 
@@ -153,10 +147,11 @@ export default function BookingForm() {
       if (!res.ok) throw new Error(result.error);
 
       toast.success("Appointment booked successfully!");
-      reloadUser(); // refresh user context
-    } catch (error: any) {
-      console.error(error);
-      toast.error(error.message || "Booking failed");
+      reloadUser();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Booking failed";
+      console.error(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -174,15 +169,19 @@ export default function BookingForm() {
 
   return (
     <section className="min-h-full flex flex-col lg:flex-row">
-      <div className="lg:w-1/2 relative">
-        <img
+      {/* Left image */}
+      <div className="lg:w-1/2 relative h-64 lg:h-auto">
+        <Image
           src="/image/book-bg.jpg"
           alt="Professional barber at work"
-          className="w-full h-64 lg:h-full object-cover"
+          fill
+          className="object-cover"
+          priority
         />
         <div className="absolute inset-0 bg-black/20"></div>
       </div>
 
+      {/* Right form */}
       <motion.div
         className="lg:w-1/2 relative bg-gray-900 text-white flex items-center justify-center p-8"
         variants={containerVariants}
@@ -325,10 +324,7 @@ export default function BookingForm() {
                 <Select
                   value={watch("ageGroup")}
                   onValueChange={(val) =>
-                    setValue(
-                      "ageGroup",
-                      val as "student" | "adult" | "child" | "young" | "other"
-                    )
+                    setValue("ageGroup", val as BookingFormData["ageGroup"])
                   }
                 >
                   <SelectTrigger className="bg-white/10 border-white/20 text-white w-full">
@@ -348,7 +344,10 @@ export default function BookingForm() {
                 <Select
                   value={watch("paymentMethod")}
                   onValueChange={(val) =>
-                    setValue("paymentMethod", val as "cash" | "online")
+                    setValue(
+                      "paymentMethod",
+                      val as BookingFormData["paymentMethod"]
+                    )
                   }
                 >
                   <SelectTrigger className="bg-white/10 border-white/20 text-white w-full">

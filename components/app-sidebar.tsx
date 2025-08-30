@@ -7,7 +7,6 @@ import {
   Scissors,
   Boxes,
   BarChart3,
-  UserPlus,
 } from "lucide-react";
 
 import {

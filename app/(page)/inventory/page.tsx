@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { Plus, MoreHorizontal, Edit, Trash2, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,9 +21,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-
-import { InventoryForm } from "@/components/inventory-form";
-import { SellItemModal } from "@/components/sell-item-modal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 // -----------------------
 // Types
@@ -47,6 +51,29 @@ export interface SaleItem {
   createdAt?: string;
 }
 
+// API response types
+interface InventoryApiResponse {
+  _id: string;
+  name: string;
+  quantity: number;
+  price: number;
+  status: InventoryStatus;
+}
+
+interface SaleApiResponse {
+  _id: string;
+  inventoryId?: string;
+  name: string;
+  quantity: number;
+  price: number;
+  createdAt?: string;
+}
+
+interface SalePostResponse {
+  sale: SaleApiResponse;
+  item: InventoryApiResponse;
+}
+
 // -----------------------
 // Status display map
 // -----------------------
@@ -57,7 +84,158 @@ const displayStatus: Record<InventoryStatus, string> = {
 };
 
 // -----------------------
-// Page Component
+// Inventory Form Component
+// -----------------------
+interface InventoryFormProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (item: InventoryItem) => void;
+  initialData?: InventoryItem;
+  mode: "add" | "edit";
+}
+
+function InventoryForm({
+  isOpen,
+  onClose,
+  onSubmit,
+  initialData,
+  mode,
+}: InventoryFormProps) {
+  const [name, setName] = useState("");
+  const [quantity, setQuantity] = useState(0);
+  const [price, setPrice] = useState(0);
+  const [status, setStatus] = useState<InventoryStatus>("in-stock");
+
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name);
+      setQuantity(initialData.quantity);
+      setPrice(initialData.price);
+      setStatus(initialData.status);
+    } else {
+      setName("");
+      setQuantity(0);
+      setPrice(0);
+      setStatus("in-stock");
+    }
+  }, [initialData, isOpen]);
+
+  const handleSubmit = () => {
+    if (!name) return toast.error("Name is required");
+    onSubmit({
+      id: initialData?.id || "",
+      name,
+      quantity,
+      price,
+      status,
+    });
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{mode === "add" ? "Add Item" : "Edit Item"}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <Input
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Input
+            type="text"
+            placeholder="Quantity"
+            value={quantity}
+            onChange={(e) => setQuantity(Number(e.target.value))}
+          />
+          <Input
+            type="text"
+            placeholder="Price"
+            value={price}
+            onChange={(e) => setPrice(Number(e.target.value))}
+          />
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as InventoryStatus)}
+            className="border rounded px-2 py-1 w-full"
+          >
+            <option value="in-stock">In Stock</option>
+            <option value="low-stock">Low Stock</option>
+            <option value="out-of-stock">Out of Stock</option>
+          </select>
+        </div>
+        <DialogFooter className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit}>
+            {mode === "add" ? "Add" : "Update"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// -----------------------
+// Sell Item Modal Component
+// -----------------------
+interface SellItemModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  item: InventoryItem;
+  onSubmit: (quantity: number) => void;
+}
+
+function SellItemModal({
+  isOpen,
+  onClose,
+  item,
+  onSubmit,
+}: SellItemModalProps) {
+  const [quantity, setQuantity] = useState(1);
+
+  useEffect(() => {
+    if (item) setQuantity(1);
+  }, [item]);
+
+  const handleSubmit = () => {
+    if (quantity <= 0 || quantity > item.quantity) {
+      return toast.error("Invalid quantity");
+    }
+    onSubmit(quantity);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Sell Item: {item.name}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <Input
+            type="string"
+            min={1}
+            max={item.quantity}
+            value={quantity}
+            onChange={(e) => setQuantity(Number(e.target.value))}
+          />
+          <p>Available: {item.quantity}</p>
+        </div>
+        <DialogFooter className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit}>Sell</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// -----------------------
+// Inventory Page Component
 // -----------------------
 export default function InventoryPage() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -67,8 +245,6 @@ export default function InventoryPage() {
   const [formMode, setFormMode] = useState<"add" | "edit">("add");
   const [editingItem, setEditingItem] = useState<InventoryItem | undefined>();
   const [sellingItem, setSellingItem] = useState<InventoryItem | null>(null);
-
-  // Sales filters
   const [salesFilter, setSalesFilter] = useState<
     "all" | "today" | "week" | "month" | "custom"
   >("all");
@@ -80,29 +256,29 @@ export default function InventoryPage() {
   // -----------------------
   // Fetch Inventory
   // -----------------------
-  const fetchInventory = async () => {
+  const fetchInventory = useCallback(async () => {
     try {
       const res = await fetch("/api/inventory");
-      if (!res.ok) throw new Error((await res.json()).error);
-      const data = await res.json();
+      if (!res.ok) throw new Error("Failed to fetch inventory");
+      const data: InventoryApiResponse[] = await res.json();
       setInventory(
-        data.map((i: any) => ({
+        data.map((i) => ({
           id: i._id,
           name: i.name,
           quantity: i.quantity,
           price: i.price,
-          status: i.status as InventoryStatus,
+          status: i.status,
         }))
       );
-    } catch {
-      toast.error("Failed to fetch inventory");
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
     }
-  };
+  }, []);
 
   // -----------------------
   // Fetch Sales
   // -----------------------
-  const fetchSales = async () => {
+  const fetchSales = useCallback(async () => {
     try {
       let url = "/api/sales";
       if (salesFilter !== "all") {
@@ -112,14 +288,13 @@ export default function InventoryPage() {
           params.append("from", customFilter.from);
           params.append("to", customFilter.to);
         }
-        url += "?" + params.toString();
+        url += `?${params.toString()}`;
       }
-
       const res = await fetch(url);
-      if (!res.ok) throw new Error((await res.json()).error);
-      const data = await res.json();
+      if (!res.ok) throw new Error("Failed to fetch sales");
+      const data: SaleApiResponse[] = await res.json();
       setSales(
-        data.map((s: any) => ({
+        data.map((s) => ({
           id: s._id,
           inventoryId: s.inventoryId,
           name: s.name,
@@ -128,29 +303,27 @@ export default function InventoryPage() {
           createdAt: s.createdAt,
         }))
       );
-    } catch {
-      toast.error("Failed to fetch sales");
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
     }
-  };
+  }, [salesFilter, customFilter]);
 
   useEffect(() => {
     fetchInventory();
     fetchSales();
-  }, []);
-
+  }, [fetchInventory, fetchSales]);
   useEffect(() => {
     if (salesFilter !== "custom") fetchSales();
-  }, [salesFilter]);
+  }, [salesFilter, fetchSales]);
 
   // -----------------------
-  // Inventory Form
+  // Form handlers
   // -----------------------
   const openAddForm = () => {
     setFormMode("add");
     setEditingItem(undefined);
     setFormOpen(true);
   };
-
   const openEditForm = (item: InventoryItem) => {
     setFormMode("edit");
     setEditingItem(item);
@@ -159,60 +332,47 @@ export default function InventoryPage() {
 
   const submitForm = async (item: InventoryItem) => {
     try {
-      const body = { ...item };
-      let res;
-      if (formMode === "add") {
-        res = await fetch("/api/inventory", {
-          method: "POST",
+      const res = await fetch(
+        item.id && formMode === "edit"
+          ? `/api/inventory/${item.id}`
+          : "/api/inventory",
+        {
+          method: formMode === "add" ? "POST" : "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-      } else {
-        res = await fetch(`/api/inventory/${item.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-      }
-      if (!res.ok) throw new Error((await res.json()).error);
-      const data = await res.json();
-
+          body: JSON.stringify(item),
+        }
+      );
+      if (!res.ok) throw new Error("Failed to save item");
+      const data: InventoryApiResponse = await res.json();
       const updatedItem: InventoryItem = {
         id: data._id,
         name: data.name,
         quantity: data.quantity,
         price: data.price,
-        status: data.status as InventoryStatus,
+        status: data.status,
       };
-
       setInventory((prev) =>
         formMode === "add"
           ? [...prev, updatedItem]
           : prev.map((i) => (i.id === data._id ? updatedItem : i))
       );
       setFormOpen(false);
-    } catch {
-      toast.error("Failed to save item");
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
     }
   };
 
-  // -----------------------
-  // Delete Inventory
-  // -----------------------
   const deleteItem = async (id: string) => {
     try {
       const res = await fetch(`/api/inventory/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error((await res.json()).error);
+      if (!res.ok) throw new Error("Failed to delete");
       setInventory((prev) => prev.filter((i) => i.id !== id));
       toast.success("Deleted successfully");
-    } catch {
-      toast.error("Failed to delete");
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
     }
   };
 
-  // -----------------------
-  // Sell Item
-  // -----------------------
   const confirmSale = async (quantity: number) => {
     if (!sellingItem) return;
     try {
@@ -221,21 +381,15 @@ export default function InventoryPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ quantity }),
       });
-      if (!res.ok) throw new Error((await res.json()).error);
-      const data = await res.json();
-
+      if (!res.ok) throw new Error("Failed to sell item");
+      const data: SalePostResponse = await res.json();
       setInventory((prev) =>
         prev.map((i) =>
           i.id === sellingItem.id
-            ? {
-                ...i,
-                quantity: data.item.quantity,
-                status: data.item.status as InventoryStatus,
-              }
+            ? { ...i, quantity: data.item.quantity, status: data.item.status }
             : i
         )
       );
-
       setSales((prev) => [
         ...prev,
         {
@@ -246,37 +400,32 @@ export default function InventoryPage() {
           createdAt: data.sale.createdAt,
         },
       ]);
-
       toast.success("Sold successfully");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
     } finally {
       setSellingItem(null);
     }
   };
 
-  // -----------------------
-  // Delete Sale
-  // -----------------------
   const deleteSale = async (id?: string) => {
     if (!id) return;
     try {
       const res = await fetch(`/api/sales/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error((await res.json()).error);
+      if (!res.ok) throw new Error("Failed to delete sale");
       setSales((prev) => prev.filter((s) => s.id !== id));
       toast.success("Sale deleted");
-    } catch {
-      toast.error("Failed to delete sale");
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
     }
   };
 
   // -----------------------
-  // Filtered Inventory
+  // Render helpers
   // -----------------------
   const filteredInventory = inventory.filter((i) =>
     i.name.toLowerCase().includes(search.toLowerCase())
   );
-
   const getStatusColor = (status: InventoryStatus) => {
     switch (status) {
       case "in-stock":
@@ -380,7 +529,16 @@ export default function InventoryPage() {
             <span>Filter:</span>
             <select
               value={salesFilter}
-              onChange={(e) => setSalesFilter(e.target.value as any)}
+              onChange={(e) =>
+                setSalesFilter(
+                  e.target.value as
+                    | "all"
+                    | "today"
+                    | "week"
+                    | "month"
+                    | "custom"
+                )
+              }
               className="border rounded px-2 py-1"
             >
               <option value="all">All</option>

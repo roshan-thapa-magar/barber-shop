@@ -15,10 +15,20 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useUserContext } from "@/context/UserContext";
 import { toast } from "sonner";
 
+interface Profile {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  ageGroup: string;
+  customerType: string;
+  image: string;
+}
+
 export default function ProfilePage() {
   const { user, reloadUser } = useUserContext();
 
-  const [profile, setProfile] = useState({
+  const [profile, setProfile] = useState<Profile>({
     name: "",
     email: "",
     phone: "",
@@ -65,11 +75,10 @@ export default function ProfilePage() {
     setProfile({ ...profile, [e.target.name]: e.target.value });
   };
 
-  const handleSelectChange = (name: string, value: string) => {
+  const handleSelectChange = (name: keyof Profile, value: string) => {
     setProfile({ ...profile, [name]: value });
   };
 
-  // Convert selected image to base64 for backend
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -90,7 +99,10 @@ export default function ProfilePage() {
         return;
       }
 
-      const payload: any = { ...profile, avatar: profile.image };
+      const payload: Partial<Profile> & { avatar?: string } = {
+        ...profile,
+        avatar: profile.image,
+      };
       if (!payload.password) delete payload.password;
 
       const res = await fetch(`/api/users/${user._id}`, {
@@ -106,9 +118,9 @@ export default function ProfilePage() {
 
       reloadUser();
       toast.success("Profile updated successfully!");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error(err.message || "Profile update failed");
+      toast.error((err as Error).message || "Profile update failed");
     }
   };
 

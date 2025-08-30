@@ -1,16 +1,15 @@
 // types/inventory.ts
 export type InventoryStatus = "in-stock" | "low-stock" | "out-of-stock";
-
-export interface InventoryItem {
-  id: string; // always required
+interface InventoryApiResponse {
+  _id: string;
   name: string;
   quantity: number;
   price: number;
   status: InventoryStatus;
 }
 
-export interface SaleItem {
-  id: string;
+interface SaleApiResponse {
+  _id: string;
   inventoryId?: string;
   name: string;
   quantity: number;

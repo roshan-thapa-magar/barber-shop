@@ -47,7 +47,6 @@ export default function ShopStatusForm() {
     watch,
     formState: { errors, isSubmitting },
     reset,
-    setValue,
   } = useForm<ShopForm>({
     resolver: zodResolver(shopSchema),
     defaultValues: {

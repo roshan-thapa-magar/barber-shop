@@ -43,32 +43,29 @@ export function ServiceForm({
 }: ServiceFormProps) {
   const [formData, setFormData] = useState({
     service: service?.service || "",
-    price: service?.price ?? "",
+    price: service?.price ?? 0,
     status: service?.status || "active",
   });
 
   useEffect(() => {
     setFormData({
       service: service?.service || "",
-      price: service?.price ?? "",
+      price: service?.price ?? 0,
       status: service?.status || "active",
     });
   }, [service, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
-      ...formData,
-      price: parseFloat(formData.price as any),
-    });
-    setFormData({ service: "", price: "", status: "active" });
+    onSubmit({ ...formData });
+    setFormData({ service: "", price: 0, status: "active" });
     onClose();
   };
 
   const handleClose = () => {
     setFormData({
       service: service?.service || "",
-      price: service?.price ?? "",
+      price: service?.price ?? 0,
       status: service?.status || "active",
     });
     onClose();
@@ -101,11 +98,11 @@ export function ServiceForm({
             <Input
               id="price"
               type="number"
-              min="0"
-              step="0.01"
+              min={0}
+              step={0.01}
               value={formData.price}
               onChange={(e) =>
-                setFormData({ ...formData, price: e.target.value })
+                setFormData({ ...formData, price: parseFloat(e.target.value) })
               }
               placeholder="Enter price"
               required

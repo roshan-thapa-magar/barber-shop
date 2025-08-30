@@ -5,6 +5,21 @@ import cloudinary from "@/lib/cloudinary";
 
 await dbConnect();
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "An unknown error occurred";
+
+type UpdateUserPayload = Partial<{
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  ageGroup: string;
+  customerType: string;
+  avatar: string;
+  [key: string]: unknown;
+}>;
+
+// GET user by ID
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -12,29 +27,34 @@ export async function GET(
   try {
     const { id } = params;
     const user = await UserModel.findById(id).select("-password");
-    if (!user)
+    if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
-
+    }
     return NextResponse.json(user, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  } catch (error: unknown) {
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 400 }
+    );
   }
 }
 
+// PATCH update user
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const { id } = params;
-    const body = await request.json();
+    const body: UpdateUserPayload = await request.json();
     const { avatar, ...rest } = body;
 
     const user = await UserModel.findById(id);
-    if (!user)
+    if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
 
-    // If new avatar uploaded, delete old one and upload new
+    // Handle avatar upload
     if (avatar) {
       if (user.avatar?.public_id) {
         await cloudinary.uploader.destroy(user.avatar.public_id);
@@ -55,11 +75,15 @@ export async function PATCH(
     delete userObj.password;
 
     return NextResponse.json(userObj, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  } catch (error: unknown) {
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 400 }
+    );
   }
 }
 
+// DELETE user
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -67,13 +91,17 @@ export async function DELETE(
   try {
     const { id } = params;
     const deletedUser = await UserModel.findByIdAndDelete(id);
-    if (!deletedUser)
+    if (!deletedUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
     return NextResponse.json(
       { message: "User deleted successfully" },
       { status: 200 }
     );
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  } catch (error: unknown) {
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 400 }
+    );
   }
 }

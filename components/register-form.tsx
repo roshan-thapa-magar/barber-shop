@@ -16,7 +16,8 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner"; // ✅ toast import
+import { toast } from "sonner";
+import Image from "next/image";
 
 export function RegisterForm({
   className,
@@ -31,17 +32,16 @@ export function RegisterForm({
 
     const formData = new FormData(e.currentTarget);
 
-    // ✅ Combine first + last name
     const fname = formData.get("fname")?.toString() || "";
     const lname = formData.get("lname")?.toString() || "";
     const name = `${fname} ${lname}`.trim();
 
     const data = {
-      name, // ✅ final field
-      email: formData.get("email"),
-      phone: formData.get("phone"),
-      password: formData.get("password"),
-      ageGroup: formData.get("ageGroup"),
+      name,
+      email: formData.get("email")?.toString(),
+      phone: formData.get("phone")?.toString(),
+      password: formData.get("password")?.toString(),
+      ageGroup: formData.get("ageGroup")?.toString(),
     };
 
     try {
@@ -58,8 +58,9 @@ export function RegisterForm({
 
       toast.success("Account created successfully! 🎉");
       router.push("/login");
-    } catch (err: any) {
-      toast.error(err.message || "Something went wrong");
+    } catch (error: unknown) {
+      if (error instanceof Error) toast.error(error.message);
+      else toast.error("Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -80,12 +81,14 @@ export function RegisterForm({
       <Card className="overflow-hidden p-0">
         <CardContent className="grid p-0 md:grid-cols-2">
           <div className="bg-muted relative hidden md:block">
-            <img
+            <Image
               src="/image/about-1.jpg"
-              alt="Image"
-              className="absolute inset-0 h-full w-full object-cover "
+              alt="About Image"
+              fill
+              className="object-cover"
             />
           </div>
+
           <form className="p-6 md:p-8" onSubmit={handleSubmit}>
             <div className="flex flex-col gap-3">
               <div className="flex flex-col items-center text-center">

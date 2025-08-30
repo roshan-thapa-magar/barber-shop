@@ -2,36 +2,35 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongodb";
 import InventoryModel from "@/model/inventory";
 
+await dbConnect();
+
 // GET all inventory (optional status filter)
 export async function GET(req: Request) {
-  await dbConnect();
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
 
   try {
-    const query: any = {};
+    const query: Record<string, unknown> = {};
     if (status) query.status = status;
+
     const items = await InventoryModel.find(query).sort({ createdAt: -1 });
     return NextResponse.json(items, { status: 200 });
-  } catch {
-    return NextResponse.json(
-      { error: "Failed to fetch inventory" },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch inventory";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 // POST new inventory item
 export async function POST(req: Request) {
-  await dbConnect();
   try {
     const body = await req.json();
     const newItem = await InventoryModel.create(body);
     return NextResponse.json(newItem, { status: 201 });
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: "Failed to add item", details: err.message },
-      { status: 400 }
-    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Failed to add item";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }

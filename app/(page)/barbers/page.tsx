@@ -46,17 +46,23 @@ export default function BarbersPage() {
     setLoading(true);
     try {
       const data = await apiFetch<Barber[]>("/api/users?role=barber");
-      const normalized = data.map((d: any) => ({
-        id: d.id || d._id || String(d._id),
+
+      const normalized = data.map((d) => ({
+        id: d.id ?? d._id ?? String(d._id),
         name: d.name,
         email: d.email,
         phone: d.phone,
-        image: d.image || "",
-        status: d.status || "active",
-      }));
+        image: d.image ?? "",
+        status: d.status ?? "active",
+      })) as Barber[];
+
       setBarbers(normalized);
-    } catch (err: any) {
-      toast.error(`Failed to load barbers: ${err.message}`);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        toast.error(`Failed to load barbers: ${err.message}`);
+      } else {
+        toast.error("Failed to load barbers");
+      }
     } finally {
       setLoading(false);
     }
@@ -79,18 +85,19 @@ export default function BarbersPage() {
 
   // Add barber
   const handleAddBarber = async (
-    payload: Omit<Barber, "id"> & { id?: string; password?: string }
+    payload: Omit<Barber, "id"> & { password?: string }
   ) => {
     try {
-      await apiFetch("/api/users", {
+      await apiFetch<Barber>("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...payload, role: "barber" }),
       });
       toast.success("Barber added successfully");
       fetchBarbers();
-    } catch (err: any) {
-      toast.error(`Add failed: ${err.message}`);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(`Add failed: ${err.message}`);
+      else toast.error("Add failed");
     }
   };
 
@@ -99,8 +106,9 @@ export default function BarbersPage() {
     payload: Omit<Barber, "id"> & { id?: string; password?: string }
   ) => {
     if (!payload.id) return toast.error("Barber ID missing");
+
     try {
-      await apiFetch(`/api/users/${payload.id}`, {
+      await apiFetch<Barber>(`/api/users/${payload.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -108,20 +116,23 @@ export default function BarbersPage() {
       toast.success("Barber updated successfully");
       setEditingBarber(undefined);
       fetchBarbers();
-    } catch (err: any) {
-      toast.error(`Update failed: ${err.message}`);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(`Update failed: ${err.message}`);
+      else toast.error("Update failed");
     }
   };
 
   // Delete barber
   const handleDeleteBarber = async (id: string) => {
     if (!confirm("Delete this barber? This cannot be undone.")) return;
+
     try {
       await apiFetch(`/api/users/${id}`, { method: "DELETE" });
       toast.success("Barber deleted successfully");
       setBarbers((prev) => prev.filter((b) => b.id !== id));
-    } catch (err: any) {
-      toast.error(`Delete failed: ${err.message}`);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(`Delete failed: ${err.message}`);
+      else toast.error("Delete failed");
     }
   };
 

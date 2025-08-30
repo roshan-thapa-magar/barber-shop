@@ -28,7 +28,6 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 
-// Field types
 export type FormFieldType =
   | "text"
   | "email"
@@ -45,67 +44,58 @@ export interface FormFieldConfig {
   placeholder?: string;
   description?: string;
   required?: boolean;
-  options?: { value: string; label: string }[]; // For select fields
+  options?: { value: string; label: string }[];
   validation?: z.ZodTypeAny;
 }
 
-export interface ReusableFormProps {
+export interface ReusableFormProps<T extends Record<string, unknown>> {
   title?: string;
   description?: string;
   fields: FormFieldConfig[];
-  onSubmit: (data: Record<string, any>) => void;
+  onSubmit: (data: T) => void;
   submitText?: string;
   isLoading?: boolean;
-  defaultValues?: Record<string, any>;
+  defaultValues?: T;
 }
 
-export function ReusableForm({
+export function ReusableForm<T extends Record<string, unknown>>({
   title,
   description,
   fields,
   onSubmit,
   submitText = "Submit",
   isLoading = false,
-  defaultValues = {},
-}: ReusableFormProps) {
-  // Create dynamic schema based on field configurations
-  const createSchema = () => {
-    const schemaFields: Record<string, z.ZodTypeAny> = {};
+  defaultValues = {} as T,
+}: ReusableFormProps<T>) {
+  // Build Zod schema dynamically
+  const schema = z.object(
+    fields.reduce<Record<string, z.ZodTypeAny>>((acc, field) => {
+      let validator: z.ZodTypeAny = z.string();
 
-    fields.forEach((field) => {
-      let fieldSchema: z.ZodTypeAny;
-
-      if (field.validation) {
-        fieldSchema = field.validation;
-      } else {
+      if (field.validation) validator = field.validation;
+      else {
         switch (field.type) {
           case "email":
-            fieldSchema = z.string().email("Invalid email address");
+            validator = z.string().email("Invalid email");
             break;
           case "number":
-            fieldSchema = z.coerce.number();
+            validator = z.coerce.number();
             break;
           case "image":
-            fieldSchema = z.instanceof(File).optional();
+            validator = z.instanceof(File).optional();
             break;
           default:
-            fieldSchema = z.string();
+            validator = z.string();
         }
       }
 
-      if (!field.required) {
-        fieldSchema = fieldSchema.optional();
-      }
+      if (!field.required) validator = validator.optional();
+      acc[field.name] = validator;
+      return acc;
+    }, {})
+  );
 
-      schemaFields[field.name] = fieldSchema;
-    });
-
-    return z.object(schemaFields);
-  };
-
-  const schema = createSchema();
   type FormValues = z.infer<typeof schema>;
-
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues,
@@ -115,35 +105,43 @@ export function ReusableForm({
     Record<string, string>
   >({});
 
-  const handleImageChange = (fieldName: string, file: File | null) => {
+  const handleImageChange = (
+    fieldName: keyof FormValues,
+    file: File | null
+  ) => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview((prev) => ({
           ...prev,
-          [fieldName]: reader.result as string,
+          [fieldName as string]: reader.result as string,
         }));
       };
       reader.readAsDataURL(file);
-      form.setValue(fieldName as keyof FormValues, file as any);
+      form.setValue(fieldName, file as unknown as FormValues[keyof FormValues]);
     } else {
       setImagePreview((prev) => {
-        const newPreview = { ...prev };
-        delete newPreview[fieldName];
-        return newPreview;
+        const copy = { ...prev };
+        delete copy[fieldName as string];
+        return copy;
       });
-      form.setValue(fieldName as keyof FormValues, undefined as any);
+      form.setValue(
+        fieldName,
+        undefined as unknown as FormValues[keyof FormValues]
+      );
     }
   };
 
   const renderField = (field: FormFieldConfig) => {
+    const name = field.name as keyof FormValues;
+
     switch (field.type) {
       case "textarea":
         return (
           <FormField
             key={field.name}
             control={form.control}
-            name={field.name as keyof FormValues}
+            name={name}
             render={({ field: formField }) => (
               <FormItem>
                 <FormLabel>{field.label}</FormLabel>
@@ -151,7 +149,7 @@ export function ReusableForm({
                   <Textarea
                     placeholder={field.placeholder}
                     {...formField}
-                    value={formField.value as string | undefined}
+                    value={(formField.value as string) || ""}
                   />
                 </FormControl>
                 {field.description && (
@@ -168,22 +166,22 @@ export function ReusableForm({
           <FormField
             key={field.name}
             control={form.control}
-            name={field.name as keyof FormValues}
+            name={name}
             render={({ field: formField }) => (
               <FormItem>
                 <FormLabel>{field.label}</FormLabel>
                 <FormControl>
                   <Select
-                    onValueChange={formField.onChange}
                     value={(formField.value as string) || ""}
+                    onValueChange={formField.onChange}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder={field.placeholder} />
                     </SelectTrigger>
                     <SelectContent>
-                      {field.options?.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
+                      {field.options?.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -203,48 +201,41 @@ export function ReusableForm({
           <FormField
             key={field.name}
             control={form.control}
-            name={field.name as keyof FormValues}
+            name={name}
             render={() => (
               <FormItem>
                 <FormLabel>{field.label}</FormLabel>
                 <FormControl>
                   <div className="space-y-4">
-                    <div className="flex items-center justify-center w-full">
-                      <label
-                        htmlFor={`${field.name}-upload`}
-                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-800 dark:bg-gray-700 dark:border-gray-600 dark:hover:border-gray-500"
-                      >
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                          <Upload className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" />
-                          <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                            <span className="font-semibold">
-                              Click to upload
-                            </span>{" "}
-                            or drag and drop
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            PNG, JPG or GIF (MAX. 800x400px)
-                          </p>
-                        </div>
-                        <input
-                          id={`${field.name}-upload`}
-                          type="file"
-                          className="hidden"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0] || null;
-                            handleImageChange(field.name, file);
-                          }}
-                        />
-                      </label>
-                    </div>
-
+                    <label
+                      htmlFor={`${field.name}-upload`}
+                      className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
+                    >
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="w-8 h-8 mb-4 text-gray-500" />
+                        <p className="text-sm text-gray-500">
+                          Click to upload or drag and drop
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          PNG, JPG or GIF (MAX. 800x400px)
+                        </p>
+                      </div>
+                      <input
+                        id={`${field.name}-upload`}
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={(e) =>
+                          handleImageChange(name, e.target.files?.[0] ?? null)
+                        }
+                      />
+                    </label>
                     {imagePreview[field.name] && (
                       <Card>
-                        <CardContent className="p-4">
+                        <CardContent className="p-4 relative">
                           <div className="relative w-full h-32">
                             <Image
-                              src={imagePreview[field.name]}
+                              src={imagePreview[field.name]!}
                               alt="Preview"
                               fill
                               style={{ objectFit: "cover" }}
@@ -255,9 +246,7 @@ export function ReusableForm({
                               variant="destructive"
                               size="sm"
                               className="absolute top-2 right-2"
-                              onClick={() =>
-                                handleImageChange(field.name, null)
-                              }
+                              onClick={() => handleImageChange(name, null)}
                             >
                               <X className="h-4 w-4" />
                             </Button>
@@ -281,7 +270,7 @@ export function ReusableForm({
           <FormField
             key={field.name}
             control={form.control}
-            name={field.name as keyof FormValues}
+            name={name}
             render={({ field: formField }) => (
               <FormItem>
                 <FormLabel>{field.label}</FormLabel>
@@ -308,9 +297,7 @@ export function ReusableForm({
     }
   };
 
-  const handleSubmit: SubmitHandler<FormValues> = (data) => {
-    onSubmit(data); // data now always matches schema
-  };
+  const handleSubmit: SubmitHandler<FormValues> = (data) => onSubmit(data as T);
 
   return (
     <div className="space-y-6">
@@ -322,7 +309,6 @@ export function ReusableForm({
           )}
         </div>
       )}
-
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
           {fields.map(renderField)}

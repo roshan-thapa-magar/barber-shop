@@ -1,5 +1,6 @@
 // types/barber.ts
 export interface Barber {
+  _id: string;
   id: string;
   name: string;
   email: string;

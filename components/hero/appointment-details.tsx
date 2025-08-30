@@ -42,12 +42,20 @@ interface Appointment {
   _id: string;
   ageGroup: string;
   schedule: string;
-  service: { type: string; price: number };
+  service: Service;
   barber: string;
   status: string;
   paymentMethod: string;
   createdAt: string;
 }
+
+type FormData = {
+  barber: string;
+  service: Service | null;
+  ageGroup: string;
+  schedule: string;
+  status: string;
+};
 
 export default function AppointmentDetails() {
   const { user } = useUserContext();
@@ -59,7 +67,13 @@ export default function AppointmentDetails() {
 
   const [editingAppointment, setEditingAppointment] =
     useState<Appointment | null>(null);
-  const [formData, setFormData] = useState<Partial<Appointment>>({});
+  const [formData, setFormData] = useState<FormData>({
+    barber: "",
+    service: null,
+    ageGroup: "",
+    schedule: "",
+    status: "",
+  });
 
   const [services, setServices] = useState<Service[]>([]);
   const [barbers, setBarbers] = useState<Barber[]>([]);
@@ -75,8 +89,8 @@ export default function AppointmentDetails() {
         if (!res.ok) throw new Error("Failed to fetch appointments");
         const data: Appointment[] = await res.json();
         setAppointments(data);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        setError((err as Error).message);
       } finally {
         setLoading(false);
       }
@@ -92,6 +106,8 @@ export default function AppointmentDetails() {
           fetch("/api/services?status=active"),
           fetch("/api/users?role=barber&status=active"),
         ]);
+        if (!servicesRes.ok || !barbersRes.ok)
+          throw new Error("Failed to fetch barbers/services");
         setServices(await servicesRes.json());
         setBarbers(await barbersRes.json());
       } catch (err) {
@@ -113,12 +129,15 @@ export default function AppointmentDetails() {
     });
   };
 
-  const handleChange = (key: keyof Appointment, value: any) => {
+  const handleChange = <K extends keyof FormData>(
+    key: K,
+    value: FormData[K]
+  ) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleUpdate = async () => {
-    if (!editingAppointment) return;
+    if (!editingAppointment || !formData.service) return;
 
     try {
       const payload = {
@@ -145,11 +164,10 @@ export default function AppointmentDetails() {
       toast.success("Appointment updated successfully!");
     } catch (err) {
       console.error(err);
-      toast.error("Failed to update appointment");
+      toast.error((err as Error).message || "Failed to update appointment");
     }
   };
 
-  // Status button color
   const getStatusClass = (status: string) => {
     switch (status) {
       case "cancelled":
@@ -165,7 +183,6 @@ export default function AppointmentDetails() {
     }
   };
 
-  // Total expenses
   const totalExpenses = useMemo(
     () =>
       appointments.reduce((sum, appt) => sum + (appt.service?.price || 0), 0),
@@ -258,7 +275,7 @@ export default function AppointmentDetails() {
             <DialogTitle>Edit Appointment</DialogTitle>
             <div className="space-y-3 mt-2">
               <Select
-                value={formData.barber || ""}
+                value={formData.barber}
                 onValueChange={(val) => handleChange("barber", val)}
               >
                 <SelectTrigger className="w-full">
@@ -274,7 +291,7 @@ export default function AppointmentDetails() {
               </Select>
 
               <Select
-                value={(formData.service as Service)?.type || ""}
+                value={formData.service?.type || ""}
                 onValueChange={(val) => {
                   const selected = services.find((s) => s.type === val);
                   if (selected) handleChange("service", selected);
@@ -293,7 +310,7 @@ export default function AppointmentDetails() {
               </Select>
 
               <Select
-                value={formData.ageGroup || ""}
+                value={formData.ageGroup}
                 onValueChange={(val) => handleChange("ageGroup", val)}
               >
                 <SelectTrigger className="w-full">
@@ -309,7 +326,7 @@ export default function AppointmentDetails() {
               </Select>
 
               <Select
-                value={formData.status || ""}
+                value={formData.status}
                 onValueChange={(val) => handleChange("status", val)}
               >
                 <SelectTrigger className="w-full">

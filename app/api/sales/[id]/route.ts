@@ -9,23 +9,26 @@ export async function POST(
 ) {
   await dbConnect();
   try {
-    const { quantity } = await req.json();
-    if (!quantity || quantity <= 0)
+    const body: { quantity?: number } = await req.json();
+
+    if (!body.quantity || body.quantity <= 0) {
       return NextResponse.json(
         { error: "Quantity must be > 0" },
         { status: 400 }
       );
+    }
 
     const item = await InventoryModel.findById(params.id);
     if (!item)
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
-    if (item.quantity < quantity)
+
+    if (item.quantity < body.quantity)
       return NextResponse.json(
         { error: "Insufficient stock" },
         { status: 400 }
       );
 
-    item.quantity -= quantity;
+    item.quantity -= body.quantity;
     if (item.quantity === 0) item.status = "out-of-stock";
     else if (item.quantity < 5) item.status = "low-stock";
     else item.status = "in-stock";
@@ -34,17 +37,16 @@ export async function POST(
 
     const sale = await SalesModel.create({
       name: item.name,
-      quantity,
+      quantity: body.quantity,
       price: item.price,
       inventoryId: item._id,
     });
 
     return NextResponse.json({ item, sale }, { status: 200 });
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: "Failed to process sale", details: err.message },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Failed to process sale";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -57,11 +59,11 @@ export async function DELETE(
     const sale = await SalesModel.findByIdAndDelete(params.id);
     if (!sale)
       return NextResponse.json({ error: "Sale not found" }, { status: 404 });
+
     return NextResponse.json({ success: true });
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: "Failed to delete sale", details: err.message },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Failed to delete sale";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

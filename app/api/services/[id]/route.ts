@@ -18,10 +18,14 @@ export async function GET(
     }
 
     return NextResponse.json(service);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
+// PATCH update service
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -29,7 +33,13 @@ export async function PATCH(
   await dbConnect();
   try {
     const { id } = params;
-    const body = await request.json();
+    const body: Partial<{
+      name: string;
+      description: string;
+      price: number;
+      duration: number;
+      status: string;
+    }> = await request.json();
 
     const updatedService = await ServiceModel.findByIdAndUpdate(id, body, {
       new: true,
@@ -40,11 +50,14 @@ export async function PATCH(
     }
 
     return NextResponse.json(updatedService);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
+// DELETE service
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -60,7 +73,9 @@ export async function DELETE(
     }
 
     return NextResponse.json({ message: "Service deleted successfully" });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

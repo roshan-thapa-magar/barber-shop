@@ -1,68 +1,46 @@
-import mongoose, { Schema, models } from "mongoose";
+import mongoose, { Schema, Document, Model } from "mongoose";
 
-const appointmentSchema = new Schema(
+export interface IAppointment {
+  name: string;
+  email: string;
+  phone: string;
+  barber: string;
+  service: {
+    type: string;
+    price: number;
+  };
+  schedule: string;
+  customerType: "regular" | "VIP" | "new";
+  ageGroup: "student" | "adult" | "child" | "young" | "other";
+  paymentMethod: "cash" | "online";
+  paymentStatus: "pending" | "paid" | "cancelled";
+  status: "scheduled" | "pending" | "completed" | "cancelled";
+  myId?: string;
+}
+
+const AppointmentSchema = new Schema<IAppointment>(
   {
-    name: {
-      type: String,
-      required: [true, "User name is required"],
-    },
-    email: {
-      type: String,
-      required: false, // optional
-      match: [/.+@.+\..+/, "Please enter a valid email"],
-    },
-    phone: {
-      type: String,
-      required: false, // optional
-    },
-    barber: {
-      type: String, // just a string
-      required: [true, "Barber name is required"],
-    },
+    name: { type: String, required: true },
+    email: { type: String, required: true },
+    phone: { type: String, required: true },
+    barber: { type: String, required: true },
     service: {
-      type: {
-        type: String,
-        required: [true, "Service type is required"],
-      },
-      price: { type: Number, required: [true, "Service price is required"] },
+      type: { type: String, required: true },
+      price: { type: Number, required: true },
     },
-    schedule: {
-      type: Date,
-      required: true,
-    },
-    customerType: {
-      type: String,
-      enum: ["regular", "VIP", "new"],
-      required: [true, "Customer type is required"],
-    },
-    ageGroup: {
-      type: String,
-      enum: ["student", "adult", "child", "young", "other"],
-      default: "adult",
-    },
-    paymentMethod: {
-      type: String,
-      enum: ["cash", "online"],
-      default: "cash",
-    },
-    paymentStatus: {
-      type: String,
-      enum: ["pending", "paid", "cancelled"],
-      default: "pending",
-    },
-    myId: {
-      type: String,
-    },
-    status: {
-      type: String,
-      enum: ["scheduled", "pending", "completed", "cancelled"],
-      default: "pending",
-    },
+    schedule: { type: String, required: true },
+    customerType: { type: String, required: true },
+    ageGroup: { type: String, required: true },
+    paymentMethod: { type: String, required: true },
+    paymentStatus: { type: String, required: true },
+    status: { type: String, required: true },
+    myId: { type: String },
   },
   { timestamps: true }
 );
 
-const AppointmentModel =
-  models.Appointment || mongoose.model("Appointment", appointmentSchema);
+const AppointmentModel: Model<IAppointment> =
+  mongoose.models.Appointment ||
+  mongoose.model("Appointment", AppointmentSchema);
 
 export default AppointmentModel;

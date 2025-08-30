@@ -19,6 +19,7 @@ export function NotificationDropdown() {
     { id: 2, message: "Walk-in: Sarah checked in" },
     { id: 3, message: "Reminder: Haircut with Alex tomorrow" },
   ]);
+  console.log(setNotifications);
 
   return (
     <DropdownMenu>

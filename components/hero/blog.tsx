@@ -2,6 +2,7 @@
 
 import React from "react";
 import { motion, Variants } from "framer-motion";
+import Image from "next/image";
 
 export default function Blog() {
   const blogPosts = [
@@ -74,11 +75,13 @@ export default function Blog() {
               className="bg-white group cursor-pointer rounded-xl shadow-lg hover:shadow-2xl transition duration-300 overflow-hidden"
               variants={cardVariants}
             >
-              <div className="relative overflow-hidden">
-                <img
+              <div className="relative overflow-hidden w-full h-64">
+                <Image
                   src={post.image || "/placeholder.svg"}
                   alt={post.title}
-                  className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+                  fill
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  priority
                 />
                 <div className="absolute bottom-4 left-4">
                   <span className="bg-black bg-opacity-70 text-white text-xs px-3 py-1 tracking-wider rounded">

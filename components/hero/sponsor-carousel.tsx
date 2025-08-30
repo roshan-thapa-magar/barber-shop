@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 
 const sponsors = [
   "/image/sponsor-1.png",
@@ -20,11 +21,16 @@ const SponsorSection: React.FC = () => {
         <div className="relative w-full">
           <ul className="flex animate-marquee gap-8">
             {sponsors.map((src, index) => (
-              <li key={index} className="flex-shrink-0">
-                <img
+              <li
+                key={index}
+                className="flex-shrink-0 relative h-16 md:h-24 w-auto"
+              >
+                <Image
                   src={src}
                   alt={`sponsor-${index}`}
-                  className="h-16 md:h-24"
+                  fill
+                  className="object-contain"
+                  sizes="(max-width: 768px) 4rem, 6rem"
                 />
               </li>
             ))}

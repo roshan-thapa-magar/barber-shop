@@ -4,6 +4,10 @@ import AppointmentModel from "@/model/appointment";
 
 await dbConnect();
 
+// Helper to extract error message safely
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "An unknown error occurred";
+
 // GET single appointment
 export async function GET(
   request: NextRequest,
@@ -18,8 +22,11 @@ export async function GET(
       );
     }
     return NextResponse.json(appointment);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 }
+    );
   }
 }
 
@@ -44,8 +51,11 @@ export async function PUT(
     }
 
     return NextResponse.json(updatedAppointment);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 }
+    );
   }
 }
 
@@ -65,7 +75,10 @@ export async function DELETE(
       );
     }
     return NextResponse.json({ message: "Appointment deleted successfully" });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json(
+      { error: getErrorMessage(error) },
+      { status: 500 }
+    );
   }
 }

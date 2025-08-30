@@ -1,24 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { toast } from "sonner";
-import type { InventoryItem, InventoryStatus } from "@/types/inventory";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { InventoryItem, InventoryStatus } from "@/app/(page)/inventory/page";
 
 interface InventoryFormProps {
   isOpen: boolean;
@@ -35,116 +27,78 @@ export function InventoryForm({
   initialData,
   mode,
 }: InventoryFormProps) {
-  const [formData, setFormData] = useState<InventoryItem>({
-    name: "",
-    quantity: 0,
-    price: 0,
-    status: "In Stock",
-  });
+  const [name, setName] = useState("");
+  const [quantity, setQuantity] = useState(0);
+  const [price, setPrice] = useState(0);
+  const [status, setStatus] = useState<InventoryStatus>("in-stock");
 
   useEffect(() => {
-    if (initialData) setFormData({ ...initialData });
-    else setFormData({ name: "", quantity: 0, price: 0, status: "In Stock" });
-  }, [initialData]);
+    if (initialData) {
+      setName(initialData.name);
+      setQuantity(initialData.quantity);
+      setPrice(initialData.price);
+      setStatus(initialData.status);
+    } else {
+      setName("");
+      setQuantity(0);
+      setPrice(0);
+      setStatus("in-stock");
+    }
+  }, [initialData, isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name.trim()) return toast.error("Item name is required");
-    if (formData.quantity < 0)
-      return toast.error("Quantity cannot be negative");
-    if (formData.price <= 0) return toast.error("Price must be greater than 0");
-
-    onSubmit(formData);
-    onClose();
-    toast.success(`${mode === "add" ? "Added" : "Updated"} successfully`);
-  };
-
-  const handleClose = () => {
-    onClose();
-    if (initialData) setFormData({ ...initialData });
+  const handleSubmit = () => {
+    if (!name) return;
+    onSubmit({
+      id: initialData?.id || "",
+      name,
+      quantity,
+      price,
+      status,
+    });
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{mode === "add" ? "Add Item" : "Edit Item"}</DialogTitle>
         </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Item Name</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-              placeholder="Enter item name"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="quantity">Quantity</Label>
-            <Input
-              id="quantity"
-              type="number"
-              min={0}
-              value={formData.quantity}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  quantity: Number(e.target.value) || 0,
-                })
-              }
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="price">Price (₨)</Label>
-            <Input
-              id="price"
-              type="number"
-              min={0}
-              step={0.01}
-              value={formData.price}
-              onChange={(e) =>
-                setFormData({ ...formData, price: Number(e.target.value) || 0 })
-              }
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
-            <Select
-              value={formData.status}
-              onValueChange={(value: InventoryStatus) =>
-                setFormData({ ...formData, status: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="In Stock">In Stock</SelectItem>
-                <SelectItem value="Low Stock">Low Stock</SelectItem>
-                <SelectItem value="Out of Stock">Out of Stock</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={handleClose}>
-              Cancel
-            </Button>
-            <Button type="submit">
-              {mode === "add" ? "Add Item" : "Update Item"}
-            </Button>
-          </div>
-        </form>
+        <div className="space-y-4">
+          <Input
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Input
+            type="number"
+            placeholder="Quantity"
+            value={quantity}
+            onChange={(e) => setQuantity(Number(e.target.value))}
+          />
+          <Input
+            type="text"
+            placeholder="Price"
+            value={price}
+            onChange={(e) => setPrice(Number(e.target.value))}
+          />
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as InventoryStatus)}
+            className="border rounded px-2 py-1 w-full"
+          >
+            <option value="in-stock">In Stock</option>
+            <option value="low-stock">Low Stock</option>
+            <option value="out-of-stock">Out of Stock</option>
+          </select>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit}>
+            {mode === "add" ? "Add" : "Update"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

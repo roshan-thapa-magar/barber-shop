@@ -29,7 +29,7 @@ export default function Header() {
   const pathname = usePathname();
   const isHomePage = pathname === "/";
   const { data: session } = useSession();
-  const { user, reloadUser } = useUserContext();
+  const { user } = useUserContext();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);

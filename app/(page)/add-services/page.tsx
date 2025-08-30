@@ -54,8 +54,9 @@ export default function ServicesPage() {
       }));
 
       setServices(mapped);
-    } catch (_err) {
+    } catch (err) {
       // _err is intentionally unused
+      console.log(err);
       toast.error("Failed to fetch services");
     }
   };

@@ -16,7 +16,6 @@ type MongooseCache = {
 
 // Extend NodeJS global object
 declare global {
-  // eslint-disable-next-line no-var
   var mongooseCache: MongooseCache | undefined;
 }
 
@@ -43,6 +42,6 @@ export const dbConnect = async () => {
   }
 
   cached.conn = await cached.promise;
-  global.mongooseCache = cached; // ✅ Save to global
+  global.mongooseCache = cached; // Save to global
   return cached.conn;
 };
