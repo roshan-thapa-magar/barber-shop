@@ -222,7 +222,7 @@ export default function AppointmentDetails() {
                   <TableCell>{appt.service.type}</TableCell>
                   <TableCell> रु {appt.service.price}</TableCell>
                   <TableCell>
-                    {moment(appt.schedule).format("YYYY-MM-DD HH:mm")}
+                    {moment(appt.schedule).format("YYYY-MM-DD HH:mm A")}
                   </TableCell>
                   <TableCell>{appt.ageGroup}</TableCell>
                   <TableCell>{appt.paymentMethod}</TableCell>

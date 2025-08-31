@@ -20,6 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Image from "next/image";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 // Types
 interface Barber {
@@ -33,12 +35,26 @@ interface Service {
   price: number;
 }
 
-// Form validation schema
+interface Appointment {
+  _id: string;
+  schedule: string; // ISO string
+  status: "pending" | "scheduled" | "completed" | "cancelled";
+}
+
+interface Shop {
+  shopStatus: string;
+  openingTime: string | null; // e.g., "6:00 AM"
+  closingTime: string | null; // e.g., "4:00 PM"
+}
+
+// Form validation
 const bookingSchema = z.object({
   name: z.string().min(2, "Name is required"),
   email: z.string().email("Invalid email address"),
   phone: z.string().min(7, "Phone number too short"),
-  schedule: z.string().min(1, "Please enter a schedule"),
+  schedule: z.date().refine((val) => !!val, {
+    message: "Please select a date and time",
+  }),
   service: z.string().min(1, "Please select a service"),
   barber: z.string().min(1, "Please choose a barber"),
   customerType: z.string(),
@@ -48,6 +64,16 @@ const bookingSchema = z.object({
 
 type BookingFormData = z.infer<typeof bookingSchema>;
 
+// Helper to convert AM/PM time string to 24-hour format
+function parseTimeTo24Hour(timeStr: string) {
+  const [time, modifier] = timeStr.split(" "); // e.g., ["6:00", "AM"]
+  const [hours, minutes] = time.split(":").map(Number);
+  let h = hours;
+  if (modifier === "PM" && hours < 12) h += 12;
+  if (modifier === "AM" && hours === 12) h = 0;
+  return { hours: h, minutes };
+}
+
 export default function BookingForm() {
   const { user, reloadUser } = useUserContext();
   const { status } = useSession();
@@ -55,6 +81,12 @@ export default function BookingForm() {
 
   const [barbers, setBarbers] = useState<Barber[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [shop, setShop] = useState<Shop>({
+    shopStatus: "closed",
+    openingTime: null,
+    closingTime: null,
+  });
   const [loading, setLoading] = useState(false);
 
   const {
@@ -69,7 +101,7 @@ export default function BookingForm() {
       name: "",
       email: "",
       phone: "",
-      schedule: "",
+      schedule: new Date(),
       service: "",
       barber: "",
       customerType: "regular",
@@ -78,7 +110,9 @@ export default function BookingForm() {
     },
   });
 
-  // Update form values when user is loaded
+  const watchSchedule = watch("schedule");
+
+  // Prefill user info
   useEffect(() => {
     if (!user) return;
     setValue("name", user.name || "");
@@ -91,44 +125,131 @@ export default function BookingForm() {
     );
   }, [user, setValue]);
 
-  // Fetch barbers and services
+  // Fetch user appointments
+  useEffect(() => {
+    if (!user?._id) return;
+    setLoading(true);
+    fetch(`/api/appointments?myId=${user._id}`)
+      .then((res) => res.json())
+      .then((data: Appointment[]) => setAppointments(data))
+      .finally(() => setLoading(false));
+  }, [user?._id]);
+
+  // Fetch barbers, services, and shop info
   useEffect(() => {
     async function fetchData() {
       try {
         const barberRes = await fetch("/api/users?role=barber&status=active");
-        if (!barberRes.ok) throw new Error("Failed to fetch barbers");
         const barberData: Barber[] = await barberRes.json();
         setBarbers(barberData);
 
         const serviceRes = await fetch("/api/services?status=active");
-        if (!serviceRes.ok) throw new Error("Failed to fetch services");
         const serviceData: Service[] = await serviceRes.json();
         setServices(serviceData);
-      } catch (error: unknown) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Failed to load barbers or services";
-        console.error(message);
-        toast.error(message);
+
+        const shopRes = await fetch("/api/shop");
+        const shopData: Shop = await shopRes.json();
+        setShop(shopData);
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to load barbers, services, or shop info");
       }
     }
     fetchData();
   }, []);
 
+  // Disable times outside shop hours or already booked
+  // Disable times outside shop hours, already booked, and past times today
+  const filterTime = (time: Date) => {
+    if (!shop.openingTime || !shop.closingTime) return true;
+
+    const { hours: openH, minutes: openM } = parseTimeTo24Hour(
+      shop.openingTime
+    );
+    const { hours: closeH, minutes: closeM } = parseTimeTo24Hour(
+      shop.closingTime
+    );
+
+    const selectedDate = new Date(time);
+    const now = new Date();
+
+    // Disable times before shop opening or after shop closing
+    const openDate = new Date(selectedDate);
+    openDate.setHours(openH, openM, 0, 0);
+
+    const closeDate = new Date(selectedDate);
+    closeDate.setHours(closeH, closeM, 0, 0);
+
+    if (selectedDate < openDate || selectedDate > closeDate) return false;
+
+    // Disable past times today
+    if (
+      selectedDate.toDateString() === now.toDateString() &&
+      selectedDate.getTime() < now.getTime()
+    ) {
+      return false;
+    }
+
+    // Already booked slots
+    for (const appt of appointments) {
+      const apptTime = new Date(appt.schedule);
+      if (
+        apptTime.getFullYear() === selectedDate.getFullYear() &&
+        apptTime.getMonth() === selectedDate.getMonth() &&
+        apptTime.getDate() === selectedDate.getDate() &&
+        apptTime.getHours() === selectedDate.getHours() &&
+        apptTime.getMinutes() === selectedDate.getMinutes() &&
+        (appt.status === "pending" || appt.status === "scheduled")
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  // Form submission
   const onSubmit = async (data: BookingFormData) => {
     if (status === "unauthenticated") {
       router.push("/login?callbackUrl=/appointment");
       return;
     }
 
+    if (shop.shopStatus !== "open") {
+      toast.error("The shop is currently closed. Cannot make appointments.");
+      return;
+    }
+
+    // Check if user already has a pending or scheduled appointment
+    const hasActiveAppointment = appointments.some(
+      (appt) => appt.status === "pending" || appt.status === "scheduled"
+    );
+    if (hasActiveAppointment) {
+      toast.error(
+        "You already have a pending or scheduled appointment. Cannot book another."
+      );
+      return;
+    }
+
+    const selectedDate = new Date(data.schedule);
+    if (selectedDate < new Date()) {
+      toast.error("Please select a valid date and time (today or future).");
+      return;
+    }
+
+    if (!filterTime(selectedDate)) {
+      toast.error(
+        `Please select a valid time within shop hours: ${shop.openingTime} - ${shop.closingTime} and avoid already booked slots.`
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       const selectedService = services.find((s) => s._id === data.service);
-      if (!selectedService) throw new Error("Selected service not found");
-
       const selectedBarber = barbers.find((b) => b._id === data.barber);
-      if (!selectedBarber) throw new Error("Selected barber not found");
+      if (!selectedService || !selectedBarber)
+        throw new Error("Service or barber not found");
 
       const payload = {
         myId: user?._id,
@@ -148,10 +269,9 @@ export default function BookingForm() {
 
       toast.success("Appointment booked successfully!");
       reloadUser();
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Booking failed";
-      console.error(message);
-      toast.error(message);
+    } catch (err) {
+      console.error(err);
+      toast.error("Booking failed");
     } finally {
       setLoading(false);
     }
@@ -161,7 +281,6 @@ export default function BookingForm() {
     hidden: {},
     visible: { transition: { staggerChildren: 0.2 } },
   };
-
   const itemVariants: Variants = {
     hidden: { opacity: 0, y: 50 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
@@ -190,7 +309,6 @@ export default function BookingForm() {
         viewport={{ once: true, amount: 0.3 }}
       >
         <div className="absolute inset-0 bg-[#222227]/90"></div>
-
         <motion.div
           className="relative z-10 w-full max-w-md"
           variants={containerVariants}
@@ -225,7 +343,7 @@ export default function BookingForm() {
               <motion.div variants={itemVariants}>
                 <Input
                   type="email"
-                  placeholder="Your Email"
+                  placeholder="Email"
                   {...register("email")}
                   className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                 />
@@ -242,7 +360,7 @@ export default function BookingForm() {
               <motion.div variants={itemVariants}>
                 <Input
                   type="tel"
-                  placeholder="Your Phone No"
+                  placeholder="Phone"
                   {...register("phone")}
                   className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                 />
@@ -254,10 +372,17 @@ export default function BookingForm() {
               </motion.div>
 
               <motion.div variants={itemVariants}>
-                <Input
-                  type="datetime-local"
-                  {...register("schedule")}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 w-full"
+                <DatePicker
+                  selected={watchSchedule}
+                  onChange={(date) => setValue("schedule", date as Date)}
+                  showTimeSelect
+                  timeFormat="hh:mm aa"
+                  timeIntervals={30}
+                  filterTime={filterTime}
+                  minDate={new Date()}
+                  dateFormat="MMMM d, yyyy h:mm aa"
+                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 w-full p-2 rounded"
+                  placeholderText={`Select date & time (${shop.openingTime} - ${shop.closingTime})`}
                 />
                 {errors.schedule && (
                   <p className="text-red-500 text-sm mt-1">
@@ -279,9 +404,9 @@ export default function BookingForm() {
                   </SelectTrigger>
                   <SelectContent>
                     {services.length > 0 ? (
-                      services.map((service) => (
-                        <SelectItem key={service._id} value={service._id}>
-                          {service.type} - {service.price}
+                      services.map((s) => (
+                        <SelectItem key={s._id} value={s._id}>
+                          {s.type} - {s.price}
                         </SelectItem>
                       ))
                     ) : (
@@ -303,9 +428,9 @@ export default function BookingForm() {
                   </SelectTrigger>
                   <SelectContent>
                     {barbers.length > 0 ? (
-                      barbers.map((barber) => (
-                        <SelectItem key={barber._id} value={barber._id}>
-                          {barber.name}
+                      barbers.map((b) => (
+                        <SelectItem key={b._id} value={b._id}>
+                          {b.name}
                         </SelectItem>
                       ))
                     ) : (
@@ -361,7 +486,7 @@ export default function BookingForm() {
               </motion.div>
             </div>
 
-            {/* Customer Type (read-only) */}
+            {/* Customer Type readonly */}
             <motion.div variants={itemVariants}>
               <Input
                 type="text"
@@ -371,14 +496,27 @@ export default function BookingForm() {
               />
             </motion.div>
 
+            {/* Submit Button */}
             <motion.div className="text-center" variants={itemVariants}>
               <Button
                 type="submit"
-                disabled={status === "unauthenticated" || loading}
+                disabled={
+                  status === "unauthenticated" ||
+                  loading ||
+                  appointments.some(
+                    (appt) =>
+                      appt.status === "pending" || appt.status === "scheduled"
+                  )
+                }
                 className="bg-neutral-600 hover:bg-neutral-700 text-white font-semibold px-8 py-3 uppercase tracking-wide"
               >
                 {loading
                   ? "Booking..."
+                  : appointments.some(
+                      (appt) =>
+                        appt.status === "pending" || appt.status === "scheduled"
+                    )
+                  ? "Already Booked"
                   : status === "unauthenticated"
                   ? "Login to Book"
                   : "Make Appointment"}

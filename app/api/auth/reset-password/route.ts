@@ -12,11 +12,8 @@ export async function POST(request: NextRequest) {
     // Validate input with Zod schema
     const validationResult = resetPasswordSchema.safeParse(body);
     if (!validationResult.success) {
-      const errors = validationResult.error.errors.map(err => err.message);
-      return NextResponse.json(
-        { error: errors.join(", ") },
-        { status: 400 }
-      );
+      const errors = validationResult.error.issues.map((err) => err.message);
+      return NextResponse.json({ error: errors.join(", ") }, { status: 400 });
     }
 
     const { token, newPassword } = validationResult.data;
@@ -24,7 +21,7 @@ export async function POST(request: NextRequest) {
     // Find user by reset token and check expiry
     const user = await UserModel.findOne({
       resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() }
+      resetPasswordExpires: { $gt: Date.now() },
     });
 
     if (!user) {
@@ -36,18 +33,18 @@ export async function POST(request: NextRequest) {
 
     // Update user password and clear reset token
     console.log("Before save - password:", newPassword);
-    
+
     // Set the password directly (it will be hashed by the pre-save hook)
     user.password = newPassword;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
-    
+
     // Mark password as modified to ensure the pre-save hook runs
-    user.markModified('password');
+    user.markModified("password");
     await user.save();
 
     console.log(`Password reset successful for user: ${user.email}`);
-    
+
     // Verify the password was saved correctly
     const updatedUser = await UserModel.findById(user._id).select("+password");
     console.log("After save - password length:", updatedUser?.password?.length);
@@ -56,7 +53,6 @@ export async function POST(request: NextRequest) {
       { message: "Password has been reset successfully" },
       { status: 200 }
     );
-
   } catch (error: unknown) {
     console.error("Reset password error:", error);
     return NextResponse.json(

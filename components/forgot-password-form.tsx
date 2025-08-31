@@ -16,7 +16,7 @@ export default function ForgotPasswordForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email.trim()) {
       toast.error("Please enter your email address");
       return;
@@ -59,23 +59,24 @@ export default function ForgotPasswordForm() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-center text-gray-600">
-            We've sent a password reset link to <strong>{email}</strong>
+            We&apos;ve sent a password reset link to <strong>{email}</strong>
           </p>
           <p className="text-center text-sm text-gray-500">
-            The link will expire in 1 hour. If you don't see the email, check your spam folder.
+            The link will expire in 1 hour. If you don&apos;t see the email,
+            check your spam folder.
           </p>
           <div className="pt-4">
-            <Button 
-              onClick={() => setEmailSent(false)} 
-              variant="outline" 
+            <Button
+              onClick={() => setEmailSent(false)}
+              variant="outline"
               className="w-full"
             >
               Send Another Email
             </Button>
           </div>
           <div className="text-center">
-            <Link 
-              href="/login" 
+            <Link
+              href="/login"
               className="text-sm text-blue-600 hover:text-blue-800 flex items-center justify-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -95,7 +96,8 @@ export default function ForgotPasswordForm() {
         </div>
         <CardTitle className="text-xl">Forgot Password?</CardTitle>
         <p className="text-sm text-gray-600">
-          Enter your email address and we'll send you a link to reset your password.
+          Enter your email address and we&apos;ll send you a link to reset your
+          password.
         </p>
       </CardHeader>
       <CardContent>
@@ -113,17 +115,13 @@ export default function ForgotPasswordForm() {
             />
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={loading}
-          >
+          <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Sending..." : "Send Reset Link"}
           </Button>
 
           <div className="text-center">
-            <Link 
-              href="/login" 
+            <Link
+              href="/login"
               className="text-sm text-blue-600 hover:text-blue-800 flex items-center justify-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
