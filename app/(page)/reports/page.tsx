@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { MoreHorizontal, Filter, Printer, Search } from "lucide-react";
+import { AdminOnly } from "@/components/role-guard";
 
 // Types
 interface ServiceDetails {
@@ -64,6 +65,14 @@ export interface Appointment {
 export type DateFilterType = "all" | "daily" | "weekly" | "monthly" | "custom";
 
 export default function AppointmentsPage() {
+  return (
+    <AdminOnly>
+      <AppointmentsPageContent />
+    </AdminOnly>
+  );
+}
+
+function AppointmentsPageContent() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<AppointmentStatus | "all">(

@@ -22,6 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ServiceForm, type Service } from "@/components/service-form";
 import { Plus, Search, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { AdminOnly } from "@/components/role-guard";
 // Define the type for API response
 interface ServiceResponse {
   _id: string;
@@ -31,6 +32,14 @@ interface ServiceResponse {
 }
 
 export default function ServicesPage() {
+  return (
+    <AdminOnly>
+      <ServicesPageContent />
+    </AdminOnly>
+  );
+}
+
+function ServicesPageContent() {
   const [services, setServices] = useState<Service[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);

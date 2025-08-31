@@ -31,8 +31,17 @@ import { BarberForm } from "@/components/barber-form";
 import { toast } from "sonner";
 import type { Barber } from "@/types/barber";
 import { apiFetch } from "@/lib/fetcher";
+import { AdminOnly } from "@/components/role-guard";
 
 export default function BarbersPage() {
+  return (
+    <AdminOnly>
+      <BarbersPageContent />
+    </AdminOnly>
+  );
+}
+
+function BarbersPageContent() {
   const [barbers, setBarbers] = useState<Barber[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
