@@ -130,7 +130,7 @@ export default function BookingForm() {
 
   // Fetch all appointments (for barber conflict checking)
   useEffect(() => {
-    fetch("/api/appointments")
+    fetch("/api/appointments?status=pending,scheduled")
       .then((res) => res.json())
       .then((data: Appointment[]) => setAllAppointments(data))
       .catch((err) => {
