@@ -5,11 +5,11 @@ import ServiceModel from "@/model/service";
 // GET service by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   await dbConnect();
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const service = await ServiceModel.findById(id);
 
@@ -28,11 +28,11 @@ export async function GET(
 // PATCH update service
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   await dbConnect();
   try {
-    const { id } = params;
+    const { id } = await params;
     const body: Partial<{
       name: string;
       description: string;
@@ -60,11 +60,11 @@ export async function PATCH(
 // DELETE service
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   await dbConnect();
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const deletedService = await ServiceModel.findByIdAndDelete(id);
 

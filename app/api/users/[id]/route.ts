@@ -22,10 +22,10 @@ type UpdateUserPayload = Partial<{
 // GET user by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const user = await UserModel.findById(id).select("-password");
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -42,10 +42,10 @@ export async function GET(
 // PATCH update user
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body: UpdateUserPayload = await request.json();
     const { avatar, password, ...rest } = body; // extract password separately
 
@@ -94,10 +94,10 @@ export async function PATCH(
 // DELETE user
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const deletedUser = await UserModel.findByIdAndDelete(id);
     if (!deletedUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });

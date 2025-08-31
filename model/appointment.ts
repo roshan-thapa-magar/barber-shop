@@ -10,11 +10,11 @@ export interface IAppointment {
     price: number;
   };
   schedule: string;
-  customerType: "regular" | "VIP" | "new";
-  ageGroup: "student" | "adult" | "child" | "young" | "other";
-  paymentMethod: "cash" | "online";
-  paymentStatus: "pending" | "paid" | "cancelled";
-  status: "scheduled" | "pending" | "completed" | "cancelled";
+  customerType?: "regular" | "VIP" | "new";
+  ageGroup?: "student" | "adult" | "child" | "young" | "other";
+  paymentMethod?: "cash" | "online";
+  paymentStatus?: "pending" | "paid" | "cancelled";
+  status?: "scheduled" | "pending" | "completed" | "cancelled";
   myId?: string;
 }
 
@@ -29,12 +29,12 @@ const AppointmentSchema = new Schema<IAppointment>(
       price: { type: Number, required: true },
     },
     schedule: { type: String, required: true },
-    customerType: { type: String, required: true },
-    ageGroup: { type: String, required: true },
-    paymentMethod: { type: String, required: true },
-    paymentStatus: { type: String, required: true },
-    status: { type: String, required: true },
-    myId: { type: String },
+    customerType: { type: String, default: "new", required: false },
+    ageGroup: { type: String, default: "adult", required: false },
+    paymentMethod: { type: String, default: "cash", required: false },
+    paymentStatus: { type: String, default: "pending", required: false },
+    status: { type: String, default: "scheduled", required: false },
+    myId: { type: String, required: false },
   },
   { timestamps: true }
 );

@@ -5,10 +5,11 @@ import SalesModel from "@/model/sales";
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   await dbConnect();
   try {
+    const { id } = await params;
     const body: { quantity?: number } = await req.json();
 
     if (!body.quantity || body.quantity <= 0) {
@@ -18,7 +19,7 @@ export async function POST(
       );
     }
 
-    const item = await InventoryModel.findById(params.id);
+    const item = await InventoryModel.findById(id);
     if (!item)
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
 
@@ -52,11 +53,12 @@ export async function POST(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   await dbConnect();
   try {
-    const sale = await SalesModel.findByIdAndDelete(params.id);
+    const { id } = await params;
+    const sale = await SalesModel.findByIdAndDelete(id);
     if (!sale)
       return NextResponse.json({ error: "Sale not found" }, { status: 404 });
 

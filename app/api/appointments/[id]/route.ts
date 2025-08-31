@@ -11,10 +11,11 @@ const getErrorMessage = (error: unknown) =>
 // GET single appointment
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const appointment = await AppointmentModel.findById(params.id);
+    const { id } = await params;
+    const appointment = await AppointmentModel.findById(id);
     if (!appointment) {
       return NextResponse.json(
         { error: "Appointment not found" },
@@ -33,12 +34,13 @@ export async function GET(
 // PUT update appointment
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const updatedAppointment = await AppointmentModel.findByIdAndUpdate(
-      params.id,
+      id,
       body,
       { new: true }
     );
@@ -62,11 +64,12 @@ export async function PUT(
 // DELETE appointment
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const deletedAppointment = await AppointmentModel.findByIdAndDelete(
-      params.id
+      id
     );
     if (!deletedAppointment) {
       return NextResponse.json(
