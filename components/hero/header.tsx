@@ -72,7 +72,7 @@ export default function Header() {
                 Services
               </Link>
 
-              {session?.user ? (
+              {user?.role === "user" ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Avatar className="h-6 w-6 cursor-pointer">
@@ -166,7 +166,7 @@ export default function Header() {
                   Services
                 </Link>
 
-                {session?.user ? (
+                {user?.role === "user" ? (
                   <>
                     <Link href="/account" className="hover:text-amber-400">
                       Profile
