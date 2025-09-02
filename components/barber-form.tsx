@@ -76,6 +76,7 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (
       !formData.name.trim() ||
       !formData.email.trim() ||
@@ -85,15 +86,21 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
 
     if (!barber && !formData.password.trim()) return;
 
-    onSubmit({
+    // include _id because your Barber type requires it; if creating a new barber,
+    // backend will typically ignore the empty _id value
+    const payload: Omit<Barber, "id"> & { id?: string; password?: string } = {
+      // supply _id: existing value when editing, or empty string when creating
+      _id: barber?._id ?? "",
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
       image: formData.image,
       status: formData.status,
-      ...(formData.password && { password: formData.password }),
       ...(barber && { id: barber.id }),
-    });
+      ...(formData.password && { password: formData.password }),
+    };
+
+    onSubmit(payload);
 
     onOpenChange(false);
 

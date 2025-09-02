@@ -149,11 +149,11 @@ function SettingsContent() {
   };
 
   return (
-    <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+    <div className="p-6 min-h-screen">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-          <Settings className="h-8 w-8 text-blue-600" />
+        <h1 className="text-3xl font-bold  mb-2 flex items-center gap-3">
+          <Settings className="h-8 w-8" />
           Settings
         </h1>
         <p className="text-gray-600">
@@ -175,7 +175,7 @@ function SettingsContent() {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Current Status Display */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 border rounded-lg">
               <div className="flex items-center gap-4">
                 <div
                   className={`w-4 h-4 rounded-full ${
@@ -224,7 +224,7 @@ function SettingsContent() {
 
             {/* Operating Hours */}
             {shopStatus.shopStatus === "open" && (
-              <div className="space-y-4 p-4 border rounded-lg bg-blue-50">
+              <div className="space-y-4 p-4 border rounded-lg">
                 <div className="flex items-center gap-2">
                   <Clock className="h-5 w-5 text-blue-600" />
                   <h3 className="font-medium text-blue-900">Operating Hours</h3>
@@ -267,7 +267,7 @@ function SettingsContent() {
             )}
 
             {/* Status Summary */}
-            <div className="p-4 bg-gray-50 rounded-lg">
+            <div className="p-4 border rounded-lg">
               <h4 className="font-medium mb-2">Status Summary</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">

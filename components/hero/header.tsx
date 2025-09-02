@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Menu, Settings, User, X, LogOut } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSession, signOut } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import {
   DropdownMenu,
@@ -28,7 +28,6 @@ export default function Header() {
 
   const pathname = usePathname();
   const isHomePage = pathname === "/";
-  const { data: session } = useSession();
   const { user } = useUserContext();
 
   useEffect(() => {

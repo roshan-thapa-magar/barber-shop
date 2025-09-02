@@ -15,7 +15,6 @@ import {
   Users,
   Calendar,
   Scissors,
-  DollarSign,
   TrendingUp,
   Clock,
   CheckCircle,
@@ -222,10 +221,10 @@ function DashboardContent() {
   }
 
   return (
-    <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+    <div className="p-6  min-h-screen">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <h1 className="text-3xl font-bold mb-2">
           Welcome back, {user?.name || "User"}! 👋
         </h1>
         <p className="text-gray-600">
@@ -235,7 +234,7 @@ function DashboardContent() {
 
       {/* Shop Status Section */}
       <div className="mb-8">
-        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -243,9 +242,7 @@ function DashboardContent() {
                   <Store className="h-8 w-8 text-blue-600" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900 mb-1">
-                    Shop Status
-                  </h2>
+                  <h2 className="text-xl font-semibold mb-1">Shop Status</h2>
                   <div className="flex items-center gap-4 text-sm text-gray-600">
                     <div className="flex items-center gap-2">
                       <div
@@ -345,10 +342,12 @@ function DashboardContent() {
               <CardTitle className="text-sm font-medium">
                 Monthly Revenue
               </CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              रु
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${stats.monthlyRevenue}</div>
+              <div className="text-2xl font-bold">
+                रु {stats.monthlyRevenue}
+              </div>
               <p className="text-xs text-muted-foreground">
                 <TrendingUp className="inline h-3 w-3 mr-1" />
                 +12% from last month
@@ -463,7 +462,7 @@ function DashboardContent() {
                   {recentAppointments.map((appointment) => (
                     <div
                       key={appointment.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      className="flex items-center justify-between p-3 border dark:bg-accent rounded-lg"
                     >
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">

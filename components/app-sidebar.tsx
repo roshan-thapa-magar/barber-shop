@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   LayoutDashboard,
-  UserCog,
   Users,
   CalendarCheck2,
   Scissors,

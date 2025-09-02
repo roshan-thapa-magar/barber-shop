@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -202,10 +202,7 @@ export default function BookingForm() {
     }
 
     // Disable past times today
-    if (
-      selectedDate.isSame(now, "day") &&
-      selectedDate.isBefore(now)
-    ) {
+    if (selectedDate.isSame(now, "day") && selectedDate.isBefore(now)) {
       return false;
     }
 
@@ -486,7 +483,10 @@ export default function BookingForm() {
                 <Select
                   value={watch("paymentMethod")}
                   onValueChange={(val) =>
-                    setValue("paymentMethod", val as BookingFormData["paymentMethod"])
+                    setValue(
+                      "paymentMethod",
+                      val as BookingFormData["paymentMethod"]
+                    )
                   }
                 >
                   <SelectTrigger className="bg-white/10 border-white/20 text-white w-full">

@@ -79,7 +79,7 @@ export default function AppointmentDetails() {
   const [barbers, setBarbers] = useState<Barber[]>([]);
   useEffect(() => {
     reloadUser();
-  }, []);
+  }, [reloadUser]);
   // Fetch appointments
   useEffect(() => {
     if (!myId) return;

@@ -6,7 +6,6 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -62,7 +61,7 @@ export default function ProfilePage() {
   });
   useEffect(() => {
     reloadUser();
-  }, []);
+  }, [reloadUser]);
   // Populate form when user data is loaded
   useEffect(() => {
     if (!user) return;

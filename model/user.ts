@@ -10,6 +10,7 @@ const userSchema = new Schema({
   status: { type: String, enum: ["active", "inactive"], default: "active" },
   image: { type: String, default: "" },
   createdAt: { type: Date, default: Date.now },
+  position: { type: String },
 
   ageGroup: {
     type: String,

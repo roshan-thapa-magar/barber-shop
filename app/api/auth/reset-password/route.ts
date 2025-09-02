@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongodb";
 import UserModel from "@/model/user";
-import bcrypt from "bcryptjs";
 import { resetPasswordSchema } from "@/lib/validation-schemas";
 
 export async function POST(request: NextRequest) {

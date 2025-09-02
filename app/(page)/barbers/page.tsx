@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, MoreHorizontal, Edit, Trash2 } from "lucide-react";
@@ -50,20 +50,48 @@ function BarbersPageContent() {
   );
   const [loading, setLoading] = useState(false);
 
-  // Fetch barbers
-  const fetchBarbers = async () => {
+  // --- Helpers to safely read unknown objects ---
+  const toStringSafe = (v: unknown): string =>
+    typeof v === "string" ? v : typeof v === "number" ? String(v) : "";
+
+  const isObject = (v: unknown): v is Record<string, unknown> =>
+    typeof v === "object" && v !== null && !Array.isArray(v);
+
+  const normalizeStatus = (raw: unknown): Barber["status"] => {
+    const s = toStringSafe(raw).toLowerCase();
+    return s === "inactive" ? "inactive" : "active";
+  };
+
+  // Fetch barbers (stable reference with useCallback so it can be used in useEffect deps)
+  const fetchBarbers = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await apiFetch<Barber[]>("/api/users?role=barber");
+      // treat raw API response as unknown and validate
+      const data = await apiFetch<unknown>("/api/users?role=barber");
 
-      const normalized = data.map((d) => ({
-        id: d.id ?? d._id ?? String(d._id),
-        name: d.name,
-        email: d.email,
-        phone: d.phone,
-        image: d.image ?? "",
-        status: d.status ?? "active",
-      })) as Barber[];
+      const arr = Array.isArray(data) ? data : [];
+
+      const normalized: Barber[] = arr.filter(isObject).map((obj) => {
+        const rawId = obj["id"] ?? obj["_id"];
+        const _id = toStringSafe(obj["_id"] ?? obj["id"] ?? rawId);
+        const id = toStringSafe(obj["id"] ?? obj["_id"] ?? _id);
+
+        const name = toStringSafe(obj["name"]);
+        const email = toStringSafe(obj["email"]);
+        const phone = toStringSafe(obj["phone"]);
+        const image = toStringSafe(obj["image"]);
+        const status = normalizeStatus(obj["status"]);
+
+        return {
+          _id,
+          id,
+          name,
+          email,
+          phone,
+          image,
+          status,
+        } as Barber;
+      });
 
       setBarbers(normalized);
     } catch (err: unknown) {
@@ -75,11 +103,11 @@ function BarbersPageContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // no external dependencies used inside (apiFetch and toast are stable)
 
   useEffect(() => {
     fetchBarbers();
-  }, []);
+  }, [fetchBarbers]); // now quiet for eslint
 
   const filteredBarbers = useMemo(
     () =>
