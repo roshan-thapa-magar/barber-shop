@@ -57,13 +57,13 @@ function BarbersPageContent() {
   const isObject = (v: unknown): v is Record<string, unknown> =>
     typeof v === "object" && v !== null && !Array.isArray(v);
 
-  const normalizeStatus = (raw: unknown): Barber["status"] => {
-    const s = toStringSafe(raw).toLowerCase();
-    return s === "inactive" ? "inactive" : "active";
-  };
-
   // Fetch barbers (stable reference with useCallback so it can be used in useEffect deps)
   const fetchBarbers = useCallback(async () => {
+    const normalizeStatus = (raw: unknown): Barber["status"] => {
+      const s = toStringSafe(raw).toLowerCase();
+      return s === "inactive" ? "inactive" : "active";
+    };
+
     setLoading(true);
     try {
       // treat raw API response as unknown and validate
@@ -103,7 +103,7 @@ function BarbersPageContent() {
     } finally {
       setLoading(false);
     }
-  }, []); // no external dependencies used inside (apiFetch and toast are stable)
+  }, []); // no external dependencies needed
 
   useEffect(() => {
     fetchBarbers();
@@ -122,9 +122,10 @@ function BarbersPageContent() {
 
   // Add barber
   const handleAddBarber = async (
-    payload: Omit<Barber, "id"> & { password?: string }
+    payload: Omit<Barber, "id" | "_id"> & { id?: string; _id?: string; password?: string }
   ) => {
     try {
+      console.log("Adding barber with payload:", { ...payload, role: "barber" });
       await apiFetch<Barber>("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -133,6 +134,7 @@ function BarbersPageContent() {
       toast.success("Barber added successfully");
       fetchBarbers();
     } catch (err: unknown) {
+      console.error("Add barber error:", err);
       if (err instanceof Error) toast.error(`Add failed: ${err.message}`);
       else toast.error("Add failed");
     }
@@ -140,7 +142,7 @@ function BarbersPageContent() {
 
   // Edit barber
   const handleEditBarber = async (
-    payload: Omit<Barber, "id"> & { id?: string; password?: string }
+    payload: Omit<Barber, "id" | "_id"> & { id?: string; _id?: string; password?: string }
   ) => {
     if (!payload.id) return toast.error("Barber ID missing");
 

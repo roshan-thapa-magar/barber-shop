@@ -8,10 +8,12 @@ await dbConnect();
 type IUser = {
   name?: string;
   email?: string;
+  phone?: string;
   password?: string;
-  role?: "admin" | "user" | "customer";
+  role?: "admin" | "user" | "barber";
   status?: "active" | "inactive";
   avatar?: { url: string; public_id: string };
+  image?: string;
   [key: string]: unknown; // replace any with unknown
 };
 
@@ -46,22 +48,44 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: Partial<IUser> & { avatar?: string; password?: string } =
+    const body: Partial<IUser> & { avatar?: string; image?: string; password?: string } =
       await request.json();
-    const { avatar, ...rest } = body;
+    const { avatar, image, ...rest } = body;
+
+    // Validate password if provided
+    if (rest.password && rest.password.length < 6) {
+      return NextResponse.json(
+        { error: "Password must be at least 6 characters long" },
+        { status: 400 }
+      );
+    }
 
     let avatarData: IUser["avatar"] | undefined = undefined;
 
-    if (avatar) {
+    // Handle image upload - check both avatar and image fields
+    const imageToUpload = avatar || image;
+    if (imageToUpload) {
       const uploadRes: CloudinaryUploadResponse =
-        await cloudinary.uploader.upload(avatar, { folder: "users" });
+        await cloudinary.uploader.upload(imageToUpload, { folder: "users" });
       avatarData = {
         url: uploadRes.secure_url,
         public_id: uploadRes.public_id,
       };
     }
 
-    const user = new UserModel({ ...rest, avatar: avatarData });
+    // Create user with proper field mapping
+    // Remove _id from rest if it's empty string to let MongoDB auto-generate
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { _id, ...userFields } = rest;
+    const userData = {
+      ...userFields,
+      avatar: avatarData,
+      image: avatarData?.url || image || "", // Store image URL in image field as well
+    };
+
+    console.log("Creating user with data:", { ...userData, password: userData.password ? "[REDACTED]" : "not provided" });
+
+    const user = new UserModel(userData);
     await user.save();
 
     const userObj = user.toObject();
@@ -69,6 +93,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(userObj, { status: 201 });
   } catch (error: unknown) {
+    console.error("User creation error:", error);
     return NextResponse.json(
       { error: getErrorMessage(error) },
       { status: 400 }

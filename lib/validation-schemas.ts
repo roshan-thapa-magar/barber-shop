@@ -59,3 +59,60 @@ export const resetPasswordSchema = z.object({
 });
 
 export type ResetPasswordFormInputs = z.infer<typeof resetPasswordFormSchema>;
+
+// Barber form validation schema
+export const barberFormSchema = z.object({
+  name: z
+    .string()
+    .min(2, { message: "Name must be at least 2 characters." })
+    .max(50, { message: "Name must be less than 50 characters." }),
+  
+  email: z.string().email({ message: "Please enter a valid email address." }),
+  
+  phone: z
+    .string()
+    .min(10, { message: "Phone number must be at least 10 digits." }),
+  
+  password: z
+    .string()
+    .min(6, { message: "Password must be at least 6 characters long." })
+    .max(128, { message: "Password must be less than 128 characters." }),
+  
+  image: z.string().optional(),
+  
+  status: z.enum(["active", "inactive"], {
+    message: "Please select a status.",
+  }),
+});
+
+// Barber form validation schema for editing (password optional)
+export const barberEditFormSchema = z.object({
+  name: z
+    .string()
+    .min(2, { message: "Name must be at least 2 characters." })
+    .max(50, { message: "Name must be less than 50 characters." }),
+  
+  email: z.string().email({ message: "Please enter a valid email address." }),
+  
+  phone: z
+    .string()
+    .min(10, { message: "Phone number must be at least 10 digits." }),
+  
+  password: z
+    .string()
+    .refine((val) => val === "" || val.length >= 6, {
+      message: "Password must be at least 6 characters long or leave empty to keep current password.",
+    })
+    .refine((val) => val === "" || val.length <= 128, {
+      message: "Password must be less than 128 characters.",
+    }),
+  
+  image: z.string().optional(),
+  
+  status: z.enum(["active", "inactive"], {
+    message: "Please select a status.",
+  }),
+});
+
+export type BarberFormInputs = z.infer<typeof barberFormSchema>;
+export type BarberEditFormInputs = z.infer<typeof barberEditFormSchema>;

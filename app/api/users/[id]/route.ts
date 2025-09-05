@@ -72,7 +72,13 @@ export async function PATCH(
     Object.assign(user, rest);
 
     // Update password only if it's provided and non-empty
-    if (password && password.trim().length >= 6) {
+    if (password && password.trim() !== "") {
+      if (password.length < 6) {
+        return NextResponse.json(
+          { error: "Password must be at least 6 characters long" },
+          { status: 400 }
+        );
+      }
       user.password = password; // pre-save hook in Mongoose will hash it
     }
 

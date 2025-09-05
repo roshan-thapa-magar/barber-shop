@@ -22,13 +22,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Upload } from "lucide-react";
 import type { Barber } from "@/types/barber";
+import { barberFormSchema, barberEditFormSchema } from "@/lib/validation-schemas";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   barber?: Barber | undefined;
   onSubmit: (
-    payload: Omit<Barber, "id"> & { id?: string; password?: string }
+    payload: Omit<Barber, "id" | "_id"> & { id?: string; _id?: string; password?: string }
   ) => void;
 }
 
@@ -41,6 +42,8 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
     image: "",
     status: "active" as "active" | "inactive",
   });
+  
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (barber) {
@@ -76,43 +79,63 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Clear previous errors
+    setErrors({});
 
-    if (
-      !formData.name.trim() ||
-      !formData.email.trim() ||
-      !formData.phone.trim()
-    )
-      return;
-
-    if (!barber && !formData.password.trim()) return;
-
-    // include _id because your Barber type requires it; if creating a new barber,
-    // backend will typically ignore the empty _id value
-    const payload: Omit<Barber, "id"> & { id?: string; password?: string } = {
-      // supply _id: existing value when editing, or empty string when creating
-      _id: barber?._id ?? "",
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      image: formData.image,
-      status: formData.status,
-      ...(barber && { id: barber.id }),
-      ...(formData.password && { password: formData.password }),
-    };
-
-    onSubmit(payload);
-
-    onOpenChange(false);
-
-    if (!barber) {
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        password: "",
-        image: "",
-        status: "active",
+    // Use appropriate schema based on whether we're editing or creating
+    const schema = barber ? barberEditFormSchema : barberFormSchema;
+    
+    try {
+      // Validate the form data
+      const validatedData = schema.parse(formData);
+      
+      console.log("Form validation passed:", { 
+        password: validatedData.password, 
+        passwordLength: validatedData.password?.length,
+        isEditing: !!barber 
       });
+      
+      // Create payload - only include _id when editing, not when creating
+      const payload: Omit<Barber, "id" | "_id"> & { id?: string; _id?: string; password?: string } = {
+        name: validatedData.name,
+        email: validatedData.email,
+        phone: validatedData.phone,
+        image: validatedData.image || "",
+        status: validatedData.status,
+        ...(barber && { id: barber.id, _id: barber._id }),
+        // Only include password if it's not empty (for editing) or if it's a new barber
+        ...(validatedData.password && validatedData.password.trim() !== "" && { password: validatedData.password }),
+      };
+      
+      console.log("Final payload:", payload);
+
+      onSubmit(payload);
+      onOpenChange(false);
+
+      if (!barber) {
+        setFormData({
+          name: "",
+          email: "",
+          phone: "",
+          password: "",
+          image: "",
+          status: "active",
+        });
+      }
+    } catch (error) {
+      if (error instanceof Error && 'issues' in error) {
+        // Zod validation error
+        const fieldErrors: Record<string, string> = {};
+        (error as { issues: Array<{ path: string[]; message: string }> }).issues.forEach((issue) => {
+          if (issue.path && issue.path.length > 0) {
+            fieldErrors[issue.path[0]] = issue.message;
+          }
+        });
+        setErrors(fieldErrors);
+      } else {
+        console.error("Form validation error:", error);
+      }
     }
   };
 
@@ -164,6 +187,9 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
               placeholder="Enter barber name"
               required
             />
+            {errors.name && (
+              <p className="text-sm text-red-500">{errors.name}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -178,6 +204,9 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
               placeholder="name@example.com"
               required
             />
+            {errors.email && (
+              <p className="text-sm text-red-500">{errors.email}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -192,6 +221,9 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
               placeholder="+1 (555) 123-4567"
               required
             />
+            {errors.phone && (
+              <p className="text-sm text-red-500">{errors.phone}</p>
+            )}
           </div>
 
           {/* Password */}
@@ -209,6 +241,9 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
               }
               required={!barber}
             />
+            {errors.password && (
+              <p className="text-sm text-red-500">{errors.password}</p>
+            )}
           </div>
 
           {/* Status */}
@@ -228,6 +263,9 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
+            {errors.status && (
+              <p className="text-sm text-red-500">{errors.status}</p>
+            )}
           </div>
 
           <DialogFooter>
