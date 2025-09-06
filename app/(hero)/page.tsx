@@ -10,21 +10,24 @@ import Testimonials from "@/components/hero/testimonials";
 import CTA from "@/components/hero/cta";
 import Blog from "@/components/hero/blog";
 import SponsorCarousel from "@/components/hero/sponsor-carousel";
+import { HomePageWrapper } from "@/components/home-page-wrapper";
 
 export default function page() {
   return (
-    <div>
-      <Header />
-      <Hero />
-      <About />
-      <Services />
-      <BookingForm />
-      <TeamSection />
-      <Testimonials />
-      <CTA />
-      <Blog />
-      <SponsorCarousel />
-      <Footer />
-    </div>
+    <HomePageWrapper>
+      <div>
+        <Header />
+        <Hero />
+        <About />
+        <Services />
+        <BookingForm />
+        <TeamSection />
+        <Testimonials />
+        <CTA />
+        <Blog />
+        <SponsorCarousel />
+        <Footer />
+      </div>
+    </HomePageWrapper>
   );
 }

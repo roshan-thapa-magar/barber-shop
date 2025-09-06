@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,20 +13,22 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 // ✅ Import schema
 import { loginSchema, LoginFormInputs } from "@/schemas/auth";
 
-export function LoginForm({
+function LoginFormContent({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const [showPassword, setShowPassword] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   // ✅ Redirect if logged in
   useEffect(() => {
@@ -48,6 +50,16 @@ export function LoginForm({
       redirectByRole(session.user.role);
     }
   }, [status, session, router]);
+
+  // Handle OAuth errors
+  useEffect(() => {
+    const error = searchParams.get("error");
+    if (error) {
+      toast.error("Authentication Error", {
+        description: "There was a problem signing you in. Please try again.",
+      });
+    }
+  }, [searchParams]);
 
   const {
     register,
@@ -99,6 +111,23 @@ export function LoginForm({
       const res = await fetch("/api/auth/session");
       const session = await res.json();
       redirectByRole(session?.user?.role);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setIsGoogleLoading(true);
+      // Don't specify callbackUrl - let the redirect callback handle it
+      await signIn("google", { 
+        redirect: true 
+      });
+    } catch (error) {
+      console.error("Google sign-in error:", error);
+      toast.error("Google Sign-In Failed", {
+        description: "There was a problem signing in with Google. Please try again.",
+      });
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -224,16 +253,21 @@ export function LoginForm({
                   variant="outline"
                   type="button"
                   className="w-full cursor-pointer"
+                  onClick={handleGoogleSignIn}
+                  disabled={isGoogleLoading}
                 >
                   {/* Google */}
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
                     fill="currentColor"
+                    className="w-5 h-5 mr-2"
                   >
                     <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
                   </svg>
-                  <span className="">Login with Google</span>
+                  <span className="">
+                    {isGoogleLoading ? "Signing in..." : "Login with Google"}
+                  </span>
                 </Button>
 
                 {/* <Button variant="outline" type="button" className="w-full">
@@ -267,5 +301,13 @@ export function LoginForm({
         <Link href="#">Privacy Policy</Link>.
       </div>
     </div>
+  );
+}
+
+export function LoginForm(props: React.ComponentProps<"div">) {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginFormContent {...props} />
+    </Suspense>
   );
 }
