@@ -175,16 +175,16 @@ export default function ClientsPage() {
   };
 
   return (
-    <div className="flex flex-col h-full min-h-screen space-y-6 p-6">
+    <div className="flex flex-col h-full min-h-screen space-y-6 ">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Client Management</h1>
           <p className="text-muted-foreground">Manage and view your clients</p>
         </div>
       </div>
-
+      <div className="border rounded-lg p-4 bg-muted/50 ">
       {/* Filters */}
-      <div className="flex flex-col md:flex-row md:items-center gap-4">
+      <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -273,7 +273,7 @@ export default function ClientsPage() {
           </Table>
         )}
       </div>
-
+      </div>
       {/* Mobile Cards */}
       <div className="md:hidden space-y-4">
         {filteredClients.length === 0 ? (

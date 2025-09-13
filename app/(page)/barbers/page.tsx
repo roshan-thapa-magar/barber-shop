@@ -80,6 +80,8 @@ function BarbersPageContent() {
         const email = toStringSafe(obj["email"]);
         const phone = toStringSafe(obj["phone"]);
         const image = toStringSafe(obj["image"]);
+        const position = toStringSafe(obj["position"]);
+        const experience = typeof obj["experience"] === "number" ? obj["experience"] : parseInt(toStringSafe(obj["experience"])) || 0;
         const status = normalizeStatus(obj["status"]);
 
         return {
@@ -89,6 +91,8 @@ function BarbersPageContent() {
           email,
           phone,
           image,
+          position,
+          experience,
           status,
         } as Barber;
       });
@@ -112,7 +116,7 @@ function BarbersPageContent() {
   const filteredBarbers = useMemo(
     () =>
       barbers.filter((b) =>
-        [b.name, b.email, b.phone]
+        [b.name, b.email, b.phone, b.position, b.experience.toString()]
           .join(" ")
           .toLowerCase()
           .includes(searchTerm.toLowerCase())
@@ -226,19 +230,21 @@ function BarbersPageContent() {
             <Table className="min-w-[700px]">
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
-                  <TableHead className="w-[25%]">Name</TableHead>
-                  <TableHead className="w-[25%]">Email</TableHead>
-                  <TableHead className="w-[20%]">Phone</TableHead>
-                  <TableHead className="w-[10%]">Image</TableHead>
-                  <TableHead className="w-[10%]">Status</TableHead>
-                  <TableHead className="w-[10%] text-right">Actions</TableHead>
+                  <TableHead className="w-[20%]">Name</TableHead>
+                  <TableHead className="w-[20%]">Email</TableHead>
+                  <TableHead className="w-[15%]">Phone</TableHead>
+                  <TableHead className="w-[15%]">Position</TableHead>
+                  <TableHead className="w-[10%]">Experience</TableHead>
+                  <TableHead className="w-[8%]">Image</TableHead>
+                  <TableHead className="w-[7%]">Status</TableHead>
+                  <TableHead className="w-[5%] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
 
               <TableBody>
                 {loading && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
+                    <TableCell colSpan={8} className="text-center py-8">
                       Loading...
                     </TableCell>
                   </TableRow>
@@ -246,7 +252,7 @@ function BarbersPageContent() {
 
                 {!loading && filteredBarbers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
+                    <TableCell colSpan={8} className="text-center py-8">
                       No barbers found
                     </TableCell>
                   </TableRow>
@@ -257,6 +263,8 @@ function BarbersPageContent() {
                     <TableCell className="font-medium">{b.name}</TableCell>
                     <TableCell>{b.email}</TableCell>
                     <TableCell>{b.phone}</TableCell>
+                    <TableCell>{b.position}</TableCell>
+                    <TableCell>{b.experience} years</TableCell>
                     <TableCell>
                       <Avatar className="h-8 w-8">
                         <AvatarImage
@@ -325,6 +333,8 @@ function BarbersPageContent() {
                 </div>
                 <p>Email: {b.email}</p>
                 <p>Phone: {b.phone}</p>
+                <p>Position: {b.position}</p>
+                <p>Experience: {b.experience} years</p>
                 <div className="flex items-center justify-between mt-2">
                   <Avatar className="h-8 w-8">
                     <AvatarImage

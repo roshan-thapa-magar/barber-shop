@@ -186,6 +186,7 @@ export function AppointmentForm({
             <div className="space-y-2">
               <Label htmlFor="name">Customer Name *</Label>
               <Input
+              readOnly
                 id="name"
                 value={formData.name}
                 onChange={(e) =>
@@ -200,6 +201,7 @@ export function AppointmentForm({
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
+              readOnly
                 id="email"
                 type="email"
                 value={formData.email}
@@ -214,6 +216,7 @@ export function AppointmentForm({
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
               <Input
+              readOnly
                 id="phone"
                 value={formData.phone}
                 onChange={(e) =>

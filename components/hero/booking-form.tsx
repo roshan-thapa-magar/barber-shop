@@ -355,9 +355,10 @@ export default function BookingForm() {
               <motion.div variants={itemVariants}>
                 <Input
                   type="text"
+                  readOnly
                   placeholder="Name"
                   {...register("name")}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                  className="bg-white/10 hidden border-white/20 text-white placeholder:text-gray-400"
                 />
                 {errors.name && (
                   <p className="text-red-500 text-sm mt-1">
@@ -368,9 +369,10 @@ export default function BookingForm() {
               <motion.div variants={itemVariants}>
                 <Input
                   type="email"
+                  readOnly
                   placeholder="Email"
                   {...register("email")}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                  className="bg-white/10 hidden border-white/20 text-white placeholder:text-gray-400"
                 />
                 {errors.email && (
                   <p className="text-red-500 text-sm mt-1">
@@ -469,7 +471,7 @@ export default function BookingForm() {
             </div>
 
             {/* Age Group & Payment Method */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <motion.div variants={itemVariants}>
                 <Select
                   value={watch("ageGroup")}
@@ -500,7 +502,7 @@ export default function BookingForm() {
                     )
                   }
                 >
-                  <SelectTrigger className="bg-white/10 border-white/20 text-white w-full">
+                  <SelectTrigger className="bg-white/10 hidden border-white/20 text-white w-full">
                     <SelectValue placeholder="Payment Method" />
                   </SelectTrigger>
                   <SelectContent>
@@ -517,7 +519,7 @@ export default function BookingForm() {
                 type="text"
                 value={user?.customerType || "regular"}
                 disabled
-                className="bg-white/10 border-white/20 text-gray-300"
+                className="bg-white/10 hidden border-white/20 text-gray-300"
               />
             </motion.div>
 

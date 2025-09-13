@@ -216,12 +216,12 @@ function AppointmentsPageContent() {
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
-      <div className="flex-none p-6 border-b bg-background">
+      <div className="flex-none mb-6 bg-background">
         <h1 className="text-2xl font-bold">Appointments Report</h1>
       </div>
 
       {/* Filters */}
-      <div className="flex-none p-6 border-b bg-muted/50 flex flex-col sm:flex-row gap-4 items-center">
+      <div className="flex-none mb-6 bg-muted/50 flex flex-col sm:flex-row gap-4 items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
@@ -268,13 +268,13 @@ function AppointmentsPageContent() {
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-auto p-2">
+      <div className="flex-1 overflow-auto ¸">
         {isLoading ? (
           <p className="p-6 text-center text-muted-foreground">Loading...</p>
         ) : filteredAppointments.length === 0 ? (
           <p className="p-6 text-center text-muted-foreground">No data found</p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto border rounded-lg">
             <Table>
               <TableHeader>
                 <TableRow>

@@ -149,7 +149,7 @@ function SettingsContent() {
   };
 
   return (
-    <div className="p-6 min-h-screen">
+    <div className="min-h-screen">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold  mb-2 flex items-center gap-3">

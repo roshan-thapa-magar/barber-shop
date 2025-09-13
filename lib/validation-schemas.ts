@@ -80,6 +80,16 @@ export const barberFormSchema = z.object({
   
   image: z.string().optional(),
   
+  position: z
+    .string()
+    .min(2, { message: "Position must be at least 2 characters." })
+    .max(50, { message: "Position must be less than 50 characters." }),
+  
+  experience: z
+    .number()
+    .min(0, { message: "Experience must be 0 or more years." })
+    .max(50, { message: "Experience must be less than 50 years." }),
+  
   status: z.enum(["active", "inactive"], {
     message: "Please select a status.",
   }),
@@ -108,6 +118,16 @@ export const barberEditFormSchema = z.object({
     }),
   
   image: z.string().optional(),
+  
+  position: z
+    .string()
+    .min(2, { message: "Position must be at least 2 characters." })
+    .max(50, { message: "Position must be less than 50 characters." }),
+  
+  experience: z
+    .number()
+    .min(0, { message: "Experience must be 0 or more years." })
+    .max(50, { message: "Experience must be less than 50 years." }),
   
   status: z.enum(["active", "inactive"], {
     message: "Please select a status.",

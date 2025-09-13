@@ -11,6 +11,7 @@ const userSchema = new Schema({
   image: { type: String, default: "" },
   createdAt: { type: Date, default: Date.now },
   position: { type: String },
+  experience: { type: String },
 
   ageGroup: {
     type: String,

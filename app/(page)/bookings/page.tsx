@@ -435,8 +435,8 @@ export default function AppointmentsPage() {
 
   return (
     <div className="flex flex-col h-screen">
-      <div className="flex-none p-6 border-b bg-background">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex-none mb-6 border-b bg-background">
+        <div className="flex flex-col mb-6 sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Appointments</h1>
             <p className="text-muted-foreground">
@@ -451,9 +451,9 @@ export default function AppointmentsPage() {
           </Button>
         </div>
       </div>
-
-      <div className="flex-none p-6 border-b bg-muted/50">
-        <div className="flex flex-col sm:flex-row gap-4">
+      <div className="border rounded-lg p-4 bg-muted/50 ">
+      <div className="flex md:flex-none md:justify-start ">
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
@@ -479,7 +479,7 @@ export default function AppointmentsPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto border rounded-lg">
         {isLoading ? (
           <p className="p-6 text-center text-muted-foreground">Loading...</p>
         ) : (
@@ -487,7 +487,7 @@ export default function AppointmentsPage() {
             <TableHeader className="sticky top-0 bg-background z-10">
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
+                {/* <TableHead>Email</TableHead> */}
                 <TableHead>Phone</TableHead>
                 <TableHead>Barber</TableHead>
                 <TableHead>Service</TableHead>
@@ -495,7 +495,7 @@ export default function AppointmentsPage() {
                 <TableHead>Customer Type</TableHead>
                 <TableHead>Age Group</TableHead>
                 <TableHead>Payment Method</TableHead>
-                <TableHead>Payment Status</TableHead>
+                {/* <TableHead>Payment Status</TableHead> */}
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -504,7 +504,7 @@ export default function AppointmentsPage() {
               {filteredAppointments.map((appointment) => (
                 <TableRow key={appointment._id}>
                   <TableCell>{appointment.name}</TableCell>
-                  <TableCell>{appointment.email}</TableCell>
+                  <TableCell className="hidden">{appointment.email}</TableCell>
                   <TableCell>{appointment.phone}</TableCell>
                   <TableCell>{appointment.barber}</TableCell>
                   <TableCell>
@@ -520,7 +520,7 @@ export default function AppointmentsPage() {
                   <TableCell>
                     {getBadge(appointment.paymentMethod, "paymentMethod")}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden">
                     {getBadge(appointment.paymentStatus, "paymentStatus")}
                   </TableCell>
                   <TableCell>
@@ -561,6 +561,7 @@ export default function AppointmentsPage() {
             </TableBody>
           </Table>
         )}
+      </div>
       </div>
 
       <AppointmentForm

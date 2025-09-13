@@ -40,6 +40,8 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
     phone: "",
     password: "",
     image: "",
+    position: "",
+    experience: 0,
     status: "active" as "active" | "inactive",
   });
   
@@ -53,6 +55,8 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
         phone: barber.phone,
         password: "",
         image: barber.image || "",
+        position: barber.position || "",
+        experience: barber.experience || 0,
         status: barber.status || "active",
       });
     } else {
@@ -62,6 +66,8 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
         phone: "",
         password: "",
         image: "",
+        position: "",
+        experience: 0,
         status: "active",
       });
     }
@@ -102,6 +108,8 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
         email: validatedData.email,
         phone: validatedData.phone,
         image: validatedData.image || "",
+        position: validatedData.position,
+        experience: validatedData.experience,
         status: validatedData.status,
         ...(barber && { id: barber.id, _id: barber._id }),
         // Only include password if it's not empty (for editing) or if it's a new barber
@@ -120,6 +128,8 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
           phone: "",
           password: "",
           image: "",
+          position: "",
+          experience: 0,
           status: "active",
         });
       }
@@ -223,6 +233,41 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
             />
             {errors.phone && (
               <p className="text-sm text-red-500">{errors.phone}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="position">Position</Label>
+            <Input
+              id="position"
+              value={formData.position}
+              onChange={(e) =>
+                setFormData({ ...formData, position: e.target.value })
+              }
+              placeholder="e.g., Senior Barber, Master Barber"
+              required
+            />
+            {errors.position && (
+              <p className="text-sm text-red-500">{errors.position}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="experience">Experience (Years)</Label>
+            <Input
+              id="experience"
+              type="number"
+              min="0"
+              max="50"
+              value={formData.experience}
+              onChange={(e) =>
+                setFormData({ ...formData, experience: parseInt(e.target.value) || 0 })
+              }
+              placeholder="0"
+              required
+            />
+            {errors.experience && (
+              <p className="text-sm text-red-500">{errors.experience}</p>
             )}
           </div>
 

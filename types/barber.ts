@@ -5,5 +5,7 @@ export interface Barber {
   email: string;
   phone: string;
   image?: string;
+  position: string;
+  experience: number; // years of experience
   status: "active" | "inactive";
 }
