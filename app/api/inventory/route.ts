@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongodb";
 import InventoryModel from "@/model/inventory";
 
+// Declare global io for TypeScript
+declare global {
+  var io: any;
+}
+
 await dbConnect();
 
 // GET all inventory (optional status filter)
@@ -27,6 +32,12 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const newItem = await InventoryModel.create(body);
+    
+    // Emit socket event for inventory item creation
+    if (global.io) {
+      global.io.emit("inventory:created", newItem);
+    }
+    
     return NextResponse.json(newItem, { status: 201 });
   } catch (error: unknown) {
     const message =

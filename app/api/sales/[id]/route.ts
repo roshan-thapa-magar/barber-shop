@@ -3,6 +3,11 @@ import { dbConnect } from "@/lib/mongodb";
 import InventoryModel from "@/model/inventory";
 import SalesModel from "@/model/sales";
 
+// Declare global io for TypeScript
+declare global {
+  var io: any;
+}
+
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -43,6 +48,12 @@ export async function POST(
       inventoryId: item._id,
     });
 
+    // Emit socket events for sale creation and inventory update
+    if (global.io) {
+      global.io.emit("sale:created", sale);
+      global.io.emit("inventory:updated", item);
+    }
+
     return NextResponse.json({ item, sale }, { status: 200 });
   } catch (error: unknown) {
     const message =
@@ -61,6 +72,11 @@ export async function DELETE(
     const sale = await SalesModel.findByIdAndDelete(id);
     if (!sale)
       return NextResponse.json({ error: "Sale not found" }, { status: 404 });
+
+    // Emit socket event for sale deletion
+    if (global.io) {
+      global.io.emit("sale:deleted", { id, sale });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

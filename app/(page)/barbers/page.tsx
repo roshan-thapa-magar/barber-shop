@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import type { Barber } from "@/types/barber";
 import { apiFetch } from "@/lib/fetcher";
 import { AdminOnly } from "@/components/role-guard";
+import { io, Socket } from "socket.io-client";
 
 export default function BarbersPage() {
   return (
@@ -113,6 +114,57 @@ function BarbersPageContent() {
     fetchBarbers();
   }, [fetchBarbers]); // now quiet for eslint
 
+  // Initialize socket connection for real-time updates
+  useEffect(() => {
+    const socket: Socket = io({
+      path: "/socket.io/",
+      transports: ["websocket", "polling"]
+    });
+
+    socket.on("connect", () => {
+      console.log("Connected to socket server:", socket.id);
+    });
+
+    // Handle barber updates
+    socket.on("user:update", (updatedUser: Barber) => {
+      console.log("Received user update:", updatedUser);
+      // Only update if it's a barber
+      if (updatedUser.role === "barber") {
+        setBarbers((prev) => {
+          const existingIndex = prev.findIndex((b) => b.id === updatedUser.id);
+          if (existingIndex !== -1) {
+            // Update existing barber
+            const updated = [...prev];
+            updated[existingIndex] = updatedUser;
+            return updated;
+          } else {
+            // Add new barber (avoid duplicates)
+            if (prev.find((b) => b.id === updatedUser.id)) return prev;
+            return [...prev, updatedUser];
+          }
+        });
+      }
+    });
+
+    socket.on("user:deleted", (data: { id: string; user: Barber }) => {
+      console.log("Received user deletion:", data);
+      setBarbers((prev) => prev.filter((b) => b.id !== data.id));
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Disconnected from socket server");
+    });
+
+    socket.on("connect_error", (error) => {
+      console.error("Socket connection error:", error);
+    });
+
+    // Cleanup function
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
   const filteredBarbers = useMemo(
     () =>
       barbers.filter((b) =>
@@ -136,7 +188,7 @@ function BarbersPageContent() {
         body: JSON.stringify({ ...payload, role: "barber" }),
       });
       toast.success("Barber added successfully");
-      fetchBarbers();
+      // Real-time updates will handle UI updates via socket
     } catch (err: unknown) {
       console.error("Add barber error:", err);
       if (err instanceof Error) toast.error(`Add failed: ${err.message}`);
@@ -158,7 +210,7 @@ function BarbersPageContent() {
       });
       toast.success("Barber updated successfully");
       setEditingBarber(undefined);
-      fetchBarbers();
+      // Real-time updates will handle UI updates via socket
     } catch (err: unknown) {
       if (err instanceof Error) toast.error(`Update failed: ${err.message}`);
       else toast.error("Update failed");
@@ -172,7 +224,7 @@ function BarbersPageContent() {
     try {
       await apiFetch(`/api/users/${id}`, { method: "DELETE" });
       toast.success("Barber deleted successfully");
-      setBarbers((prev) => prev.filter((b) => b.id !== id));
+      // Real-time updates will handle UI updates via socket
     } catch (err: unknown) {
       if (err instanceof Error) toast.error(`Delete failed: ${err.message}`);
       else toast.error("Delete failed");

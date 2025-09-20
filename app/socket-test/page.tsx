@@ -30,6 +30,56 @@ export default function SocketTest() {
       setMessages(prev => [...prev, `Appointment deleted: ${JSON.stringify(data)}`]);
     });
 
+    // User events
+    newSocket.on("user:update", (data) => {
+      console.log("Received user update:", data);
+      setMessages(prev => [...prev, `User update: ${JSON.stringify(data)}`]);
+    });
+
+    newSocket.on("user:deleted", (data) => {
+      console.log("Received user deletion:", data);
+      setMessages(prev => [...prev, `User deleted: ${JSON.stringify(data)}`]);
+    });
+
+    // Service events
+    newSocket.on("service:update", (data) => {
+      console.log("Received service update:", data);
+      setMessages(prev => [...prev, `Service update: ${JSON.stringify(data)}`]);
+    });
+
+    newSocket.on("service:deleted", (data) => {
+      console.log("Received service deletion:", data);
+      setMessages(prev => [...prev, `Service deleted: ${JSON.stringify(data)}`]);
+    });
+
+    // Inventory events
+    newSocket.on("inventory:update", (data) => {
+      console.log("Received inventory update:", data);
+      setMessages(prev => [...prev, `Inventory update: ${JSON.stringify(data)}`]);
+    });
+
+    newSocket.on("inventory:deleted", (data) => {
+      console.log("Received inventory deletion:", data);
+      setMessages(prev => [...prev, `Inventory deleted: ${JSON.stringify(data)}`]);
+    });
+
+    // Sales events
+    newSocket.on("sale:update", (data) => {
+      console.log("Received sale update:", data);
+      setMessages(prev => [...prev, `Sale update: ${JSON.stringify(data)}`]);
+    });
+
+    newSocket.on("sale:deleted", (data) => {
+      console.log("Received sale deletion:", data);
+      setMessages(prev => [...prev, `Sale deleted: ${JSON.stringify(data)}`]);
+    });
+
+    // Shop events
+    newSocket.on("shop:update", (data) => {
+      console.log("Received shop update:", data);
+      setMessages(prev => [...prev, `Shop update: ${JSON.stringify(data)}`]);
+    });
+
     newSocket.on("disconnect", () => {
       console.log("Disconnected from socket server");
       setIsConnected(false);

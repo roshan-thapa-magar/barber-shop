@@ -8,4 +8,5 @@ export interface Barber {
   position: string;
   experience: number; // years of experience
   status: "active" | "inactive";
+  role?: string; // Add role field for socket updates
 }

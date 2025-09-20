@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongodb";
 import ServiceModel from "@/model/service";
 
+// Declare global io for TypeScript
+declare global {
+  var io: any;
+}
+
 // GET service by ID
 export async function GET(
   request: NextRequest,
@@ -49,6 +54,11 @@ export async function PATCH(
       return NextResponse.json({ error: "Service not found" }, { status: 404 });
     }
 
+    // Emit socket event for service update
+    if (global.io) {
+      global.io.emit("service:updated", updatedService);
+    }
+
     return NextResponse.json(updatedService);
   } catch (error: unknown) {
     const message =
@@ -70,6 +80,11 @@ export async function DELETE(
 
     if (!deletedService) {
       return NextResponse.json({ error: "Service not found" }, { status: 404 });
+    }
+
+    // Emit socket event for service deletion
+    if (global.io) {
+      global.io.emit("service:deleted", { id, service: deletedService });
     }
 
     return NextResponse.json({ message: "Service deleted successfully" });

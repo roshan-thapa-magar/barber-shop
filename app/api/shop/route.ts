@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongodb";
 import ShopModel, { IShop } from "@/model/shop"; // make sure your model exports an interface IShop
 
+// Declare global io for TypeScript
+declare global {
+  var io: any;
+}
+
 // Helper to safely extract error messages
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "An unknown error occurred";
@@ -34,6 +39,11 @@ export async function POST(req: Request) {
     const shop = new ShopModel(body);
     await shop.save();
 
+    // Emit socket event for shop status creation
+    if (global.io) {
+      global.io.emit("shop:created", shop);
+    }
+
     return NextResponse.json(shop, { status: 201 });
   } catch (error: unknown) {
     return NextResponse.json(
@@ -58,6 +68,15 @@ export async function PUT(req: Request) {
     }
 
     await shop.save();
+
+    // Emit socket event for shop status update
+    if (global.io) {
+      global.io.emit("shop:updated", {
+        shopStatus: shop.shopStatus,
+        openingTime: shop.openingTime,
+        closingTime: shop.closingTime,
+      });
+    }
 
     return NextResponse.json({
       shopStatus: shop.shopStatus,

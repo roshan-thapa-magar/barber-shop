@@ -3,6 +3,11 @@ import { dbConnect } from "@/lib/mongodb";
 import UserModel from "@/model/user";
 import cloudinary from "@/lib/cloudinary";
 
+// Declare global io for TypeScript
+declare global {
+  var io: any;
+}
+
 await dbConnect();
 
 const getErrorMessage = (error: unknown) =>
@@ -87,6 +92,11 @@ export async function PATCH(
     const userObj = user.toObject();
     delete userObj.password;
 
+    // Emit socket event for user update
+    if (global.io) {
+      global.io.emit("user:updated", userObj);
+    }
+
     return NextResponse.json(userObj, { status: 200 });
   } catch (error: unknown) {
     return NextResponse.json(
@@ -108,6 +118,12 @@ export async function DELETE(
     if (!deletedUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+
+    // Emit socket event for user deletion
+    if (global.io) {
+      global.io.emit("user:deleted", { id, user: deletedUser });
+    }
+
     return NextResponse.json(
       { message: "User deleted successfully" },
       { status: 200 }

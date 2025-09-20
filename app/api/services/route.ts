@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongodb";
 import ServiceModel from "@/model/service";
 
+// Declare global io for TypeScript
+declare global {
+  var io: any;
+}
+
 interface ServiceBody {
   type: string;
   description?: string;
@@ -43,6 +48,12 @@ export async function POST(request: NextRequest) {
     }
 
     const service = await ServiceModel.create(body);
+    
+    // Emit socket event for service creation
+    if (global.io) {
+      global.io.emit("service:created", service);
+    }
+    
     return NextResponse.json(service, { status: 201 });
   } catch (error: unknown) {
     const message =

@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongodb";
 import InventoryModel from "@/model/inventory";
 
+// Declare global io for TypeScript
+declare global {
+  var io: any;
+}
+
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -34,6 +39,12 @@ export async function PUT(
     });
     if (!updated)
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
+    
+    // Emit socket event for inventory item update
+    if (global.io) {
+      global.io.emit("inventory:updated", updated);
+    }
+    
     return NextResponse.json(updated, { status: 200 });
   } catch {
     return NextResponse.json(
@@ -53,6 +64,12 @@ export async function DELETE(
     const deleted = await InventoryModel.findByIdAndDelete(id);
     if (!deleted)
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
+    
+    // Emit socket event for inventory item deletion
+    if (global.io) {
+      global.io.emit("inventory:deleted", { id, item: deleted });
+    }
+    
     return NextResponse.json({ message: "Item deleted successfully" });
   } catch {
     return NextResponse.json(

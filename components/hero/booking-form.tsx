@@ -8,6 +8,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useUserContext } from "@/context/UserContext";
 import { toast } from "sonner";
+import { io, Socket } from "socket.io-client";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,7 @@ import moment from "moment";
 interface Barber {
   _id: string;
   name: string;
+  role?: string; // Add role field for socket updates
 }
 
 interface Service {
@@ -41,6 +43,7 @@ interface Appointment {
   status: "pending" | "scheduled" | "completed" | "cancelled";
   barber: string;
   service: { type: string; price: number };
+  myId?: string; // Add myId field for user identification
 }
 
 interface Shop {
@@ -160,6 +163,126 @@ export default function BookingForm() {
 
   useEffect(() => {
     loadUserAppointments();
+  }, [user?._id]);
+
+  // Initialize socket connection for real-time updates
+  useEffect(() => {
+    const socket: Socket = io({
+      path: "/socket.io/",
+      transports: ["websocket", "polling"]
+    });
+
+    socket.on("connect", () => {
+      console.log("Connected to socket server:", socket.id);
+    });
+
+    // Handle appointment updates
+    socket.on("appointment:update", (newAppointment: Appointment) => {
+      console.log("Received appointment update:", newAppointment);
+      setAllAppointments((prev) => {
+        // Check if this is an update to existing appointment or new appointment
+        const existingIndex = prev.findIndex((a) => a._id === newAppointment._id);
+        if (existingIndex !== -1) {
+          // Update existing appointment
+          const updated = [...prev];
+          updated[existingIndex] = newAppointment;
+          return updated;
+        } else {
+          // Add new appointment (avoid duplicates)
+          if (prev.find((a) => a._id === newAppointment._id)) return prev;
+          return [...prev, newAppointment];
+        }
+      });
+
+      // Update user appointments if it belongs to current user
+      if (newAppointment.myId === user?._id) {
+        setUserAppointments((prev) => {
+          const existingIndex = prev.findIndex((a) => a._id === newAppointment._id);
+          if (existingIndex !== -1) {
+            const updated = [...prev];
+            updated[existingIndex] = newAppointment;
+            return updated;
+          } else {
+            if (prev.find((a) => a._id === newAppointment._id)) return prev;
+            return [...prev, newAppointment];
+          }
+        });
+      }
+    });
+
+    socket.on("appointment:deleted", (data: { id: string; appointment: Appointment }) => {
+      console.log("Received appointment deletion:", data);
+      setAllAppointments((prev) => prev.filter((a) => a._id !== data.id));
+      
+      // Remove from user appointments if it belongs to current user
+      if (data.appointment.myId === user?._id) {
+        setUserAppointments((prev) => prev.filter((a) => a._id !== data.id));
+      }
+    });
+
+    // Handle service updates
+    socket.on("service:update", (updatedService: Service) => {
+      console.log("Received service update:", updatedService);
+      setServices((prev) => {
+        const existingIndex = prev.findIndex((s) => s._id === updatedService._id);
+        if (existingIndex !== -1) {
+          const updated = [...prev];
+          updated[existingIndex] = updatedService;
+          return updated;
+        } else {
+          if (prev.find((s) => s._id === updatedService._id)) return prev;
+          return [...prev, updatedService];
+        }
+      });
+    });
+
+    socket.on("service:deleted", (data: { id: string; service: Service }) => {
+      console.log("Received service deletion:", data);
+      setServices((prev) => prev.filter((s) => s._id !== data.id));
+    });
+
+    // Handle barber updates
+    socket.on("user:update", (updatedUser: Barber) => {
+      console.log("Received user update:", updatedUser);
+      // Only update if it's a barber
+      if (updatedUser.role === "barber") {
+        setBarbers((prev) => {
+          const existingIndex = prev.findIndex((b) => b._id === updatedUser._id);
+          if (existingIndex !== -1) {
+            const updated = [...prev];
+            updated[existingIndex] = updatedUser;
+            return updated;
+          } else {
+            if (prev.find((b) => b._id === updatedUser._id)) return prev;
+            return [...prev, updatedUser];
+          }
+        });
+      }
+    });
+
+    socket.on("user:deleted", (data: { id: string; user: Barber }) => {
+      console.log("Received user deletion:", data);
+      setBarbers((prev) => prev.filter((b) => b._id !== data.id));
+    });
+
+    // Handle shop status updates
+    socket.on("shop:update", (shopData: Shop) => {
+      console.log("Received shop update:", shopData);
+      setShop(shopData);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Disconnected from socket server");
+    });
+
+    socket.on("connect_error", (error) => {
+      console.error("Socket connection error:", error);
+    });
+
+    // Cleanup function
+    return () => {
+      socket.disconnect();
+    };
   }, [user?._id]);
 
   // Fetch barbers, services, shop
@@ -291,9 +414,7 @@ export default function BookingForm() {
       toast.success("Appointment booked successfully!");
       reloadUser();
 
-      // 🔄 Refetch appointments so UI updates immediately
-      await loadAppointments();
-      await loadUserAppointments();
+      // Real-time updates will handle UI updates via socket
     } catch (err) {
       console.error(err);
       toast.error("Booking failed");

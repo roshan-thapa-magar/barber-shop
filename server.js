@@ -37,19 +37,74 @@ app.prepare().then(() => {
   io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
 
+    // Appointment events
     socket.on('appointment:created', (data) => {
-      // Broadcast to all clients
       io.emit('appointment:update', data);
     });
 
     socket.on('appointment:updated', (data) => {
-      // Broadcast appointment update to all clients
       io.emit('appointment:update', data);
     });
 
     socket.on('appointment:deleted', (data) => {
-      // Broadcast appointment deletion to all clients
       io.emit('appointment:deleted', data);
+    });
+
+    // User events
+    socket.on('user:created', (data) => {
+      io.emit('user:update', data);
+    });
+
+    socket.on('user:updated', (data) => {
+      io.emit('user:update', data);
+    });
+
+    socket.on('user:deleted', (data) => {
+      io.emit('user:deleted', data);
+    });
+
+    // Service events
+    socket.on('service:created', (data) => {
+      io.emit('service:update', data);
+    });
+
+    socket.on('service:updated', (data) => {
+      io.emit('service:update', data);
+    });
+
+    socket.on('service:deleted', (data) => {
+      io.emit('service:deleted', data);
+    });
+
+    // Inventory events
+    socket.on('inventory:created', (data) => {
+      io.emit('inventory:update', data);
+    });
+
+    socket.on('inventory:updated', (data) => {
+      io.emit('inventory:update', data);
+    });
+
+    socket.on('inventory:deleted', (data) => {
+      io.emit('inventory:deleted', data);
+    });
+
+    // Sales events
+    socket.on('sale:created', (data) => {
+      io.emit('sale:update', data);
+    });
+
+    socket.on('sale:deleted', (data) => {
+      io.emit('sale:deleted', data);
+    });
+
+    // Shop events
+    socket.on('shop:created', (data) => {
+      io.emit('shop:update', data);
+    });
+
+    socket.on('shop:updated', (data) => {
+      io.emit('shop:update', data);
     });
 
     socket.on('disconnect', () => {

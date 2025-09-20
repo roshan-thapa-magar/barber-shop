@@ -3,6 +3,11 @@ import { dbConnect } from "@/lib/mongodb";
 import UserModel from "@/model/user";
 import cloudinary from "@/lib/cloudinary";
 
+// Declare global io for TypeScript
+declare global {
+  var io: any;
+}
+
 await dbConnect();
 
 type IUser = {
@@ -90,6 +95,11 @@ export async function POST(request: NextRequest) {
 
     const userObj = user.toObject();
     delete userObj.password;
+
+    // Emit socket event for user creation
+    if (global.io) {
+      global.io.emit("user:created", userObj);
+    }
 
     return NextResponse.json(userObj, { status: 201 });
   } catch (error: unknown) {
