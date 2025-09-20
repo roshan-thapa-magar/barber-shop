@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
 
     // Emit socket event for user creation
     if (global.io) {
-      global.io.emit("user:created", userObj);
+      global.io.emit("user:update", userObj);
     }
 
     return NextResponse.json(userObj, { status: 201 });

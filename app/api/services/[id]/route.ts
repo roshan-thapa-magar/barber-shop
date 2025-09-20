@@ -56,7 +56,7 @@ export async function PATCH(
 
     // Emit socket event for service update
     if (global.io) {
-      global.io.emit("service:updated", updatedService);
+      global.io.emit("service:update", updatedService);
     }
 
     return NextResponse.json(updatedService);

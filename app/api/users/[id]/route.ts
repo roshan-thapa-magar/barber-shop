@@ -21,6 +21,10 @@ type UpdateUserPayload = Partial<{
   ageGroup: string;
   customerType: string;
   avatar: string;
+  image: string;
+  position: string;
+  experience: number;
+  status: string;
   [key: string]: unknown;
 }>;
 
@@ -52,25 +56,31 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body: UpdateUserPayload = await request.json();
-    const { avatar, password, ...rest } = body; // extract password separately
+    
+    console.log("User update request:", { id, body });
+    
+    const { avatar, image, password, ...rest } = body; // extract password separately
 
     const user = await UserModel.findById(id);
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Handle avatar upload
-    if (avatar) {
+    // Handle avatar/image upload - check both avatar and image fields
+    const imageToUpload = avatar || image;
+    if (imageToUpload) {
       if (user.avatar?.public_id) {
         await cloudinary.uploader.destroy(user.avatar.public_id);
       }
-      const uploadRes = await cloudinary.uploader.upload(avatar, {
+      const uploadRes = await cloudinary.uploader.upload(imageToUpload, {
         folder: "users",
       });
       user.avatar = {
         url: uploadRes.secure_url,
         public_id: uploadRes.public_id,
       };
+      // Also update the image field for compatibility
+      user.image = uploadRes.secure_url;
     }
 
     // Update other fields
@@ -94,7 +104,7 @@ export async function PATCH(
 
     // Emit socket event for user update
     if (global.io) {
-      global.io.emit("user:updated", userObj);
+      global.io.emit("user:update", userObj);
     }
 
     return NextResponse.json(userObj, { status: 200 });

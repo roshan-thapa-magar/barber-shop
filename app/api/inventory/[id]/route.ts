@@ -42,7 +42,7 @@ export async function PUT(
     
     // Emit socket event for inventory item update
     if (global.io) {
-      global.io.emit("inventory:updated", updated);
+      global.io.emit("inventory:update", updated);
     }
     
     return NextResponse.json(updated, { status: 200 });

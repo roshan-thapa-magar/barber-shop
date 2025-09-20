@@ -86,9 +86,13 @@ export const barberFormSchema = z.object({
     .max(50, { message: "Position must be less than 50 characters." }),
   
   experience: z
-    .number()
-    .min(0, { message: "Experience must be 0 or more years." })
-    .max(50, { message: "Experience must be less than 50 years." }),
+    .union([z.string(), z.number()])
+    .transform((val) => {
+      const num = typeof val === "string" ? parseInt(val) : val;
+      return isNaN(num) ? 0 : num;
+    })
+    .refine((val) => val >= 0, { message: "Experience must be 0 or more years." })
+    .refine((val) => val <= 50, { message: "Experience must be less than 50 years." }),
   
   status: z.enum(["active", "inactive"], {
     message: "Please select a status.",
@@ -125,9 +129,13 @@ export const barberEditFormSchema = z.object({
     .max(50, { message: "Position must be less than 50 characters." }),
   
   experience: z
-    .number()
-    .min(0, { message: "Experience must be 0 or more years." })
-    .max(50, { message: "Experience must be less than 50 years." }),
+    .union([z.string(), z.number()])
+    .transform((val) => {
+      const num = typeof val === "string" ? parseInt(val) : val;
+      return isNaN(num) ? 0 : num;
+    })
+    .refine((val) => val >= 0, { message: "Experience must be 0 or more years." })
+    .refine((val) => val <= 50, { message: "Experience must be less than 50 years." }),
   
   status: z.enum(["active", "inactive"], {
     message: "Please select a status.",

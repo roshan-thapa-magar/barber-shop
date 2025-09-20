@@ -41,7 +41,7 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
     password: "",
     image: "",
     position: "",
-    experience: 0,
+    experience: "0",
     status: "active" as "active" | "inactive",
   });
   
@@ -56,7 +56,7 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
         password: "",
         image: barber.image || "",
         position: barber.position || "",
-        experience: barber.experience || 0,
+        experience: String(barber.experience || 0),
         status: barber.status || "active",
       });
     } else {
@@ -67,7 +67,7 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
         password: "",
         image: "",
         position: "",
-        experience: 0,
+        experience: "0",
         status: "active",
       });
     }
@@ -99,7 +99,8 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
       console.log("Form validation passed:", { 
         password: validatedData.password, 
         passwordLength: validatedData.password?.length,
-        isEditing: !!barber 
+        isEditing: !!barber,
+        formData: formData
       });
       
       // Create payload - only include _id when editing, not when creating
@@ -109,9 +110,13 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
         phone: validatedData.phone,
         image: validatedData.image || "",
         position: validatedData.position,
-        experience: validatedData.experience,
+        experience: typeof validatedData.experience === "string" ? parseInt(validatedData.experience) || 0 : validatedData.experience,
         status: validatedData.status,
-        ...(barber && { id: barber.id, _id: barber._id }),
+        // Include both id and _id when editing for compatibility
+        ...(barber && { 
+          id: barber.id || barber._id, 
+          _id: barber._id || barber.id 
+        }),
         // Only include password if it's not empty (for editing) or if it's a new barber
         ...(validatedData.password && validatedData.password.trim() !== "" && { password: validatedData.password }),
       };
@@ -129,7 +134,7 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
           password: "",
           image: "",
           position: "",
-          experience: 0,
+          experience: "0",
           status: "active",
         });
       }
@@ -168,7 +173,7 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16">
                 <AvatarImage
-                  src={formData.image || "/placeholder.svg"}
+                  src={formData.image || ""}
                   alt="profile"
                 />
                 <AvatarFallback>
@@ -256,13 +261,15 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
             <Label htmlFor="experience">Experience (Years)</Label>
             <Input
               id="experience"
-              type="number"
-              min="0"
-              max="50"
+              type="text"
               value={formData.experience}
-              onChange={(e) =>
-                setFormData({ ...formData, experience: parseInt(e.target.value) || 0 })
-              }
+              onChange={(e) => {
+                const value = e.target.value;
+                // Allow only numbers and empty string
+                if (value === "" || /^\d+$/.test(value)) {
+                  setFormData({ ...formData, experience: value });
+                }
+              }}
               placeholder="0"
               required
             />

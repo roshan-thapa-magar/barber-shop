@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     
     // Emit socket event for service creation
     if (global.io) {
-      global.io.emit("service:created", service);
+      global.io.emit("service:update", service);
     }
     
     return NextResponse.json(service, { status: 201 });

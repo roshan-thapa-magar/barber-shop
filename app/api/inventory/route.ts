@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     
     // Emit socket event for inventory item creation
     if (global.io) {
-      global.io.emit("inventory:created", newItem);
+      global.io.emit("inventory:update", newItem);
     }
     
     return NextResponse.json(newItem, { status: 201 });

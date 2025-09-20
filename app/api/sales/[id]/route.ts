@@ -50,8 +50,8 @@ export async function POST(
 
     // Emit socket events for sale creation and inventory update
     if (global.io) {
-      global.io.emit("sale:created", sale);
-      global.io.emit("inventory:updated", item);
+      global.io.emit("sale:update", sale);
+      global.io.emit("inventory:update", item);
     }
 
     return NextResponse.json({ item, sale }, { status: 200 });

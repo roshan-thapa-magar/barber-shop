@@ -131,7 +131,7 @@ function BarbersPageContent() {
       // Only update if it's a barber
       if (updatedUser.role === "barber") {
         setBarbers((prev) => {
-          const existingIndex = prev.findIndex((b) => b.id === updatedUser.id);
+          const existingIndex = prev.findIndex((b) => b._id === updatedUser._id || b.id === updatedUser.id);
           if (existingIndex !== -1) {
             // Update existing barber
             const updated = [...prev];
@@ -139,7 +139,7 @@ function BarbersPageContent() {
             return updated;
           } else {
             // Add new barber (avoid duplicates)
-            if (prev.find((b) => b.id === updatedUser.id)) return prev;
+            if (prev.find((b) => b._id === updatedUser._id || b.id === updatedUser.id)) return prev;
             return [...prev, updatedUser];
           }
         });
@@ -148,7 +148,7 @@ function BarbersPageContent() {
 
     socket.on("user:deleted", (data: { id: string; user: Barber }) => {
       console.log("Received user deletion:", data);
-      setBarbers((prev) => prev.filter((b) => b.id !== data.id));
+      setBarbers((prev) => prev.filter((b) => b._id !== data.id && b.id !== data.id));
     });
 
     socket.on("disconnect", () => {
@@ -200,10 +200,12 @@ function BarbersPageContent() {
   const handleEditBarber = async (
     payload: Omit<Barber, "id" | "_id"> & { id?: string; _id?: string; password?: string }
   ) => {
-    if (!payload.id) return toast.error("Barber ID missing");
+    const barberId = payload._id || payload.id;
+    if (!barberId) return toast.error("Barber ID missing");
 
     try {
-      await apiFetch<Barber>(`/api/users/${payload.id}`, {
+      console.log("Editing barber with ID:", barberId, "Payload:", payload);
+      await apiFetch<Barber>(`/api/users/${barberId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -212,20 +214,26 @@ function BarbersPageContent() {
       setEditingBarber(undefined);
       // Real-time updates will handle UI updates via socket
     } catch (err: unknown) {
+      console.error("Edit barber error:", err);
       if (err instanceof Error) toast.error(`Update failed: ${err.message}`);
       else toast.error("Update failed");
     }
   };
 
   // Delete barber
-  const handleDeleteBarber = async (id: string) => {
+  const handleDeleteBarber = async (barber: Barber) => {
+    const barberId = barber._id || barber.id;
+    if (!barberId) return toast.error("Barber ID missing");
+    
     if (!confirm("Delete this barber? This cannot be undone.")) return;
 
     try {
-      await apiFetch(`/api/users/${id}`, { method: "DELETE" });
+      console.log("Deleting barber with ID:", barberId);
+      await apiFetch(`/api/users/${barberId}`, { method: "DELETE" });
       toast.success("Barber deleted successfully");
       // Real-time updates will handle UI updates via socket
     } catch (err: unknown) {
+      console.error("Delete barber error:", err);
       if (err instanceof Error) toast.error(`Delete failed: ${err.message}`);
       else toast.error("Delete failed");
     }
@@ -320,7 +328,7 @@ function BarbersPageContent() {
                     <TableCell>
                       <Avatar className="h-8 w-8">
                         <AvatarImage
-                          src={b.image || "/placeholder.svg"}
+                          src={b.image || ""}
                           alt={b.name}
                         />
                         <AvatarFallback>{b.name?.charAt(0)}</AvatarFallback>
@@ -349,7 +357,7 @@ function BarbersPageContent() {
                           </DropdownMenuItem>
 
                           <DropdownMenuItem
-                            onClick={() => handleDeleteBarber(b.id)}
+                            onClick={() => handleDeleteBarber(b)}
                             className="text-red-600"
                           >
                             <Trash2 className="mr-2 h-4 w-4" /> Delete
@@ -390,7 +398,7 @@ function BarbersPageContent() {
                 <div className="flex items-center justify-between mt-2">
                   <Avatar className="h-8 w-8">
                     <AvatarImage
-                      src={b.image || "/placeholder.svg"}
+                      src={b.image || ""}
                       alt={b.name}
                     />
                     <AvatarFallback>{b.name?.charAt(0)}</AvatarFallback>
@@ -402,7 +410,7 @@ function BarbersPageContent() {
                     <Button
                       size="sm"
                       variant="destructive"
-                      onClick={() => handleDeleteBarber(b.id)}
+                      onClick={() => handleDeleteBarber(b)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

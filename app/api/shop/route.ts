@@ -41,7 +41,7 @@ export async function POST(req: Request) {
 
     // Emit socket event for shop status creation
     if (global.io) {
-      global.io.emit("shop:created", shop);
+      global.io.emit("shop:update", shop);
     }
 
     return NextResponse.json(shop, { status: 201 });
@@ -71,7 +71,7 @@ export async function PUT(req: Request) {
 
     // Emit socket event for shop status update
     if (global.io) {
-      global.io.emit("shop:updated", {
+      global.io.emit("shop:update", {
         shopStatus: shop.shopStatus,
         openingTime: shop.openingTime,
         closingTime: shop.closingTime,

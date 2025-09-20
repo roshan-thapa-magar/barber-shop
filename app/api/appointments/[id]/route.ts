@@ -59,7 +59,7 @@ export async function PUT(
 
     // Emit socket event for appointment update
     if (global.io) {
-      global.io.emit("appointment:updated", updatedAppointment);
+      global.io.emit("appointment:update", updatedAppointment);
     }
 
     return NextResponse.json(updatedAppointment);
