@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPinnedIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
@@ -57,6 +57,15 @@ export default function Hero() {
     }
   };
 
+  const handleMapClick = () => {
+    const destination = encodeURIComponent(
+      "P9V3+H88 OctSpace Pvt. Ltd, Budhanilkantha 44600"
+    );
+    // This opens Google Maps with navigation (driving mode)
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
+    window.open(url, "_blank");
+  };
+
   return (
     <section className="relative min-h-screen overflow-hidden">
       {slides.map((slide, index) => (
@@ -80,12 +89,23 @@ export default function Hero() {
                 {slide.title}
               </h1>
               <p className="text-xl mb-8 text-gray-200">{slide.description}</p>
-              <button
-                onClick={handleAppointmentClick}
-                className="bg-neutral-700 hover:bg-neutral-800 text-white px-8 py-3 rounded-lg font-semibold transition-colors inline-block"
-              >
-                Make Appointment
-              </button>
+              <div className="flex items-center gap-4">
+                {/* Appointment Button */}
+                <button
+                  onClick={handleAppointmentClick}
+                  className="bg-neutral-700 hover:bg-neutral-800 text-white px-8 py-3 rounded-lg font-semibold transition-colors inline-block"
+                >
+                  Make Appointment
+                </button>
+
+                {/* Map Button */}
+                <div
+                  onClick={handleMapClick}
+                  className="p-2 rounded-full bg-neutral-700 hover:bg-neutral-800 text-white cursor-pointer"
+                >
+                  <MapPinnedIcon size={40} />
+                </div>
+              </div>
             </div>
           </div>
         </div>
