@@ -57,6 +57,17 @@ export async function POST(request: NextRequest) {
       await request.json();
     const { avatar, image, ...rest } = body;
 
+    // Check if email already exists
+    if (rest.email) {
+      const existingUser = await UserModel.findOne({ email: rest.email });
+      if (existingUser) {
+        return NextResponse.json(
+          { error: "User with this email already exists" },
+          { status: 409 }
+        );
+      }
+    }
+
     // Validate password if provided
     if (rest.password && rest.password.length < 6) {
       return NextResponse.json(

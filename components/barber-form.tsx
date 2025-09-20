@@ -30,7 +30,7 @@ interface Props {
   barber?: Barber | undefined;
   onSubmit: (
     payload: Omit<Barber, "id" | "_id"> & { id?: string; _id?: string; password?: string }
-  ) => void;
+  ) => Promise<void>;
 }
 
 export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
@@ -83,7 +83,7 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Clear previous errors
@@ -123,20 +123,34 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
       
       console.log("Final payload:", payload);
 
-      onSubmit(payload);
-      onOpenChange(false);
+      // Call onSubmit and handle any errors
+      try {
+        await onSubmit(payload);
+        onOpenChange(false);
 
-      if (!barber) {
-        setFormData({
-          name: "",
-          email: "",
-          phone: "",
-          password: "",
-          image: "",
-          position: "",
-          experience: "0",
-          status: "active",
-        });
+        if (!barber) {
+          setFormData({
+            name: "",
+            email: "",
+            phone: "",
+            password: "",
+            image: "",
+            position: "",
+            experience: "0",
+            status: "active",
+          });
+        }
+      } catch (error) {
+        // Handle API errors (like email already exists)
+        if (error instanceof Error) {
+          if (error.message.includes("email already exists")) {
+            setErrors({ email: "A barber with this email already exists" });
+          } else {
+            setErrors({ general: error.message });
+          }
+        } else {
+          setErrors({ general: "An error occurred. Please try again." });
+        }
       }
     } catch (error) {
       if (error instanceof Error && 'issues' in error) {
@@ -167,6 +181,13 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* General Error Display */}
+          {errors.general && (
+            <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+              {errors.general}
+            </div>
+          )}
+
           {/* Profile Image */}
           <div className="space-y-2">
             <Label htmlFor="image">Profile Image</Label>

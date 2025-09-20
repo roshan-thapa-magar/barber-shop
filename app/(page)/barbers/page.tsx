@@ -180,20 +180,14 @@ function BarbersPageContent() {
   const handleAddBarber = async (
     payload: Omit<Barber, "id" | "_id"> & { id?: string; _id?: string; password?: string }
   ) => {
-    try {
-      console.log("Adding barber with payload:", { ...payload, role: "barber" });
-      await apiFetch<Barber>("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...payload, role: "barber" }),
-      });
-      toast.success("Barber added successfully");
-      // Real-time updates will handle UI updates via socket
-    } catch (err: unknown) {
-      console.error("Add barber error:", err);
-      if (err instanceof Error) toast.error(`Add failed: ${err.message}`);
-      else toast.error("Add failed");
-    }
+    console.log("Adding barber with payload:", { ...payload, role: "barber" });
+    await apiFetch<Barber>("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...payload, role: "barber" }),
+    });
+    toast.success("Barber added successfully");
+    // Real-time updates will handle UI updates via socket
   };
 
   // Edit barber
@@ -201,23 +195,17 @@ function BarbersPageContent() {
     payload: Omit<Barber, "id" | "_id"> & { id?: string; _id?: string; password?: string }
   ) => {
     const barberId = payload._id || payload.id;
-    if (!barberId) return toast.error("Barber ID missing");
+    if (!barberId) throw new Error("Barber ID missing");
 
-    try {
-      console.log("Editing barber with ID:", barberId, "Payload:", payload);
-      await apiFetch<Barber>(`/api/users/${barberId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      toast.success("Barber updated successfully");
-      setEditingBarber(undefined);
-      // Real-time updates will handle UI updates via socket
-    } catch (err: unknown) {
-      console.error("Edit barber error:", err);
-      if (err instanceof Error) toast.error(`Update failed: ${err.message}`);
-      else toast.error("Update failed");
-    }
+    console.log("Editing barber with ID:", barberId, "Payload:", payload);
+    await apiFetch<Barber>(`/api/users/${barberId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    toast.success("Barber updated successfully");
+    setEditingBarber(undefined);
+    // Real-time updates will handle UI updates via socket
   };
 
   // Delete barber

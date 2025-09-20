@@ -66,6 +66,20 @@ export async function PATCH(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // Check if email already exists for another user
+    if (rest.email && rest.email !== user.email) {
+      const existingUser = await UserModel.findOne({ 
+        email: rest.email, 
+        _id: { $ne: id } 
+      });
+      if (existingUser) {
+        return NextResponse.json(
+          { error: "User with this email already exists" },
+          { status: 409 }
+        );
+      }
+    }
+
     // Handle avatar/image upload - check both avatar and image fields
     const imageToUpload = avatar || image;
     if (imageToUpload) {

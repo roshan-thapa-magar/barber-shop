@@ -53,7 +53,7 @@ export function RegisterForm({
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.message || "Registration failed");
+        throw new Error(errData.error || errData.message || "Registration failed");
       }
 
       toast.success("Account created successfully! 🎉");
