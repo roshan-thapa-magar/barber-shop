@@ -96,6 +96,7 @@ export default function BookingForm() {
     closingTime: null,
   });
   const [loading, setLoading] = useState(false);
+  const [isFormDisabled, setIsFormDisabled] = useState(false);
 
   // Helpers for fetching
   async function loadAppointments() {
@@ -164,6 +165,11 @@ export default function BookingForm() {
   useEffect(() => {
     loadUserAppointments();
   }, [user?._id]);
+
+  // Handle form disabling based on shop status
+  useEffect(() => {
+    setIsFormDisabled(shop.shopStatus !== "open");
+  }, [shop.shopStatus]);
 
   // Initialize socket connection for real-time updates
   useEffect(() => {
@@ -464,11 +470,47 @@ export default function BookingForm() {
             <p className="text-gray-300">
               Choose your preferred service, barber, and schedule.
             </p>
+            <div className="flex items-center justify-center gap-2 mt-2">
+              <span className="text-sm text-gray-400">Shop Status:</span>
+              <span className={`text-sm font-medium ${
+                shop.shopStatus === "open" ? "text-green-400" : "text-red-400"
+              }`}>
+                {shop.shopStatus === "open" ? "OPEN" : "CLOSED"}
+              </span>
+              {shop.openingTime && shop.closingTime && (
+                <span className="text-sm text-gray-400">
+                  ({shop.openingTime} - {shop.closingTime})
+                </span>
+              )}
+            </div>
           </motion.div>
+
+          {/* Shop Closed Overlay */}
+          {isFormDisabled && (
+            <motion.div 
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm z-20 flex items-center justify-center rounded-lg"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="text-center p-6 bg-gray-800/90 rounded-lg border border-gray-600">
+                <div className="text-red-400 text-2xl mb-2">🔒</div>
+                <h3 className="text-xl font-bold text-white mb-2">Shop is Closed</h3>
+                <p className="text-gray-300 mb-2">
+                  We're currently not accepting appointments.
+                </p>
+                {shop.openingTime && shop.closingTime && (
+                  <p className="text-sm text-gray-400">
+                    Opening Hours: {shop.openingTime} - {shop.closingTime}
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          )}
 
           <motion.form
             onSubmit={handleSubmit(onSubmit)}
-            className="space-y-6"
+            className={`space-y-6 ${isFormDisabled ? 'pointer-events-none opacity-50' : ''}`}
             variants={containerVariants}
           >
             {/* Name & Email */}
@@ -508,9 +550,12 @@ export default function BookingForm() {
               <motion.div variants={itemVariants}>
                 <Input
                   type="tel"
-                  placeholder="Phone"
+                  placeholder={isFormDisabled ? "Shop is closed" : "Phone"}
                   {...register("phone")}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                  disabled={isFormDisabled}
+                  className={`bg-white/10 border-white/20 text-white placeholder:text-gray-400 ${
+                    isFormDisabled ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 />
                 {errors.phone && (
                   <p className="text-red-500 text-sm mt-1">
@@ -529,8 +574,15 @@ export default function BookingForm() {
                   filterTime={filterTime}
                   minDate={new Date()}
                   dateFormat="MMMM d, yyyy h:mm aa"
-                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 w-full p-2 rounded"
-                  placeholderText={`Select date & time (${shop.openingTime} - ${shop.closingTime})`}
+                  disabled={isFormDisabled}
+                  className={`bg-white/10 border-white/20 text-white placeholder:text-gray-400 w-full p-2 rounded ${
+                    isFormDisabled ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  placeholderText={
+                    isFormDisabled 
+                      ? "Shop is closed" 
+                      : `Select date & time (${shop.openingTime} - ${shop.closingTime})`
+                  }
                 />
                 {errors.schedule && (
                   <p className="text-red-500 text-sm mt-1">
@@ -546,9 +598,12 @@ export default function BookingForm() {
                 <Select
                   value={watch("service")}
                   onValueChange={(val) => setValue("service", val)}
+                  disabled={isFormDisabled}
                 >
-                  <SelectTrigger className="bg-white/10 border-white/20 text-white w-full">
-                    <SelectValue placeholder="Select Service" />
+                  <SelectTrigger className={`bg-white/10 border-white/20 text-white w-full ${
+                    isFormDisabled ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}>
+                    <SelectValue placeholder={isFormDisabled ? "Shop is closed" : "Select Service"} />
                   </SelectTrigger>
                   <SelectContent>
                     {services.length > 0 ? (
@@ -570,9 +625,12 @@ export default function BookingForm() {
                 <Select
                   value={watch("barber")}
                   onValueChange={(val) => setValue("barber", val)}
+                  disabled={isFormDisabled}
                 >
-                  <SelectTrigger className="bg-white/10 border-white/20 text-white w-full">
-                    <SelectValue placeholder="Choose Barber" />
+                  <SelectTrigger className={`bg-white/10 border-white/20 text-white w-full ${
+                    isFormDisabled ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}>
+                    <SelectValue placeholder={isFormDisabled ? "Shop is closed" : "Choose Barber"} />
                   </SelectTrigger>
                   <SelectContent>
                     {barbers.length > 0 ? (
@@ -599,9 +657,12 @@ export default function BookingForm() {
                   onValueChange={(val) =>
                     setValue("ageGroup", val as BookingFormData["ageGroup"])
                   }
+                  disabled={isFormDisabled}
                 >
-                  <SelectTrigger className="bg-white/10 border-white/20 text-white w-full">
-                    <SelectValue placeholder="Age Group" />
+                  <SelectTrigger className={`bg-white/10 border-white/20 text-white w-full ${
+                    isFormDisabled ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}>
+                    <SelectValue placeholder={isFormDisabled ? "Shop is closed" : "Age Group"} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="student">Student</SelectItem>
@@ -651,15 +712,18 @@ export default function BookingForm() {
                 disabled={
                   status === "unauthenticated" ||
                   loading ||
+                  isFormDisabled ||
                   userAppointments.some(
                     (appt) =>
                       appt.status === "pending" || appt.status === "scheduled"
                   )
                 }
-                className="bg-neutral-600 hover:bg-neutral-700 text-white font-semibold px-8 py-3 uppercase tracking-wide"
+                className="bg-neutral-600 hover:bg-neutral-700 text-white font-semibold px-8 py-3 uppercase tracking-wide disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading
                   ? "Booking..."
+                  : isFormDisabled
+                  ? "Shop Closed"
                   : userAppointments.some(
                       (appt) =>
                         appt.status === "pending" || appt.status === "scheduled"
