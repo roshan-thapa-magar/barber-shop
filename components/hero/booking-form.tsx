@@ -96,6 +96,15 @@ export default function BookingForm() {
     closingTime: null,
   });
   const [loading, setLoading] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<{
+    barbers: Date | null;
+    services: Date | null;
+    shop: Date | null;
+  }>({
+    barbers: null,
+    services: null,
+    shop: null,
+  });
 
   // Helpers for fetching
   async function loadAppointments() {
@@ -228,9 +237,11 @@ export default function BookingForm() {
         if (existingIndex !== -1) {
           const updated = [...prev];
           updated[existingIndex] = updatedService;
+          setLastUpdate(prev => ({ ...prev, services: new Date() }));
           return updated;
         } else {
           if (prev.find((s) => s._id === updatedService._id)) return prev;
+          setLastUpdate(prev => ({ ...prev, services: new Date() }));
           return [...prev, updatedService];
         }
       });
@@ -239,6 +250,7 @@ export default function BookingForm() {
     socket.on("service:deleted", (data: { id: string; service: Service }) => {
       console.log("Received service deletion:", data);
       setServices((prev) => prev.filter((s) => s._id !== data.id));
+      setLastUpdate(prev => ({ ...prev, services: new Date() }));
     });
 
     // Handle barber updates
@@ -246,14 +258,19 @@ export default function BookingForm() {
       console.log("Received user update:", updatedUser);
       // Only update if it's a barber
       if (updatedUser.role === "barber") {
+        console.log("Updating barber list with:", updatedUser);
         setBarbers((prev) => {
           const existingIndex = prev.findIndex((b) => b._id === updatedUser._id);
           if (existingIndex !== -1) {
             const updated = [...prev];
             updated[existingIndex] = updatedUser;
+            console.log("Updated existing barber at index:", existingIndex);
+            setLastUpdate(prev => ({ ...prev, barbers: new Date() }));
             return updated;
           } else {
             if (prev.find((b) => b._id === updatedUser._id)) return prev;
+            console.log("Adding new barber to list");
+            setLastUpdate(prev => ({ ...prev, barbers: new Date() }));
             return [...prev, updatedUser];
           }
         });
@@ -263,12 +280,14 @@ export default function BookingForm() {
     socket.on("user:deleted", (data: { id: string; user: Barber }) => {
       console.log("Received user deletion:", data);
       setBarbers((prev) => prev.filter((b) => b._id !== data.id));
+      setLastUpdate(prev => ({ ...prev, barbers: new Date() }));
     });
 
     // Handle shop status updates
     socket.on("shop:update", (shopData: Shop) => {
       console.log("Received shop update:", shopData);
       setShop(shopData);
+      setLastUpdate(prev => ({ ...prev, shop: new Date() }));
     });
 
     socket.on("disconnect", () => {
@@ -284,6 +303,25 @@ export default function BookingForm() {
       socket.disconnect();
     };
   }, [user?._id]);
+
+  // Show toast notifications for real-time updates
+  useEffect(() => {
+    if (lastUpdate.barbers) {
+      toast.success("Barber list updated in real-time!");
+    }
+  }, [lastUpdate.barbers]);
+
+  useEffect(() => {
+    if (lastUpdate.services) {
+      toast.success("Service list updated in real-time!");
+    }
+  }, [lastUpdate.services]);
+
+  useEffect(() => {
+    if (lastUpdate.shop) {
+      toast.success("Shop status updated in real-time!");
+    }
+  }, [lastUpdate.shop]);
 
   // Fetch barbers, services, shop
   useEffect(() => {
@@ -464,13 +502,33 @@ export default function BookingForm() {
             <p className="text-gray-300">
               Choose your preferred service, barber, and schedule.
             </p>
+            <div className="flex items-center justify-center gap-2 mt-2">
+              <span className="text-sm text-gray-400">Shop Status:</span>
+              <span className={`text-sm font-medium ${
+                shop.shopStatus === "open" ? "text-green-400" : "text-red-400"
+              }`}>
+                {shop.shopStatus === "open" ? "Open" : "Closed"}
+              </span>
+              {lastUpdate.shop && (
+                <span className="text-green-400 text-xs animate-pulse">
+                  ● Live
+                </span>
+              )}
+            </div>
           </motion.div>
 
           <motion.form
             onSubmit={handleSubmit(onSubmit)}
-            className="space-y-6"
+            className={`space-y-6 relative ${shop.shopStatus === "closed" ? "opacity-50 pointer-events-none" : ""}`}
             variants={containerVariants}
           >
+            {shop.shopStatus === "closed" && (
+              <div className="absolute inset-0 bg-black/20 rounded-lg flex items-center justify-center z-10">
+                <div className="bg-red-600 text-white px-6 py-3 rounded-lg font-semibold">
+                  🚫 Shop is Currently Closed
+                </div>
+              </div>
+            )}
             {/* Name & Email */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <motion.div variants={itemVariants}>
@@ -508,9 +566,10 @@ export default function BookingForm() {
               <motion.div variants={itemVariants}>
                 <Input
                   type="tel"
-                  placeholder="Phone"
+                  placeholder={shop.shopStatus === "closed" ? "Shop is closed" : "Phone"}
                   {...register("phone")}
                   className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                  disabled={shop.shopStatus === "closed"}
                 />
                 {errors.phone && (
                   <p className="text-red-500 text-sm mt-1">
@@ -530,11 +589,23 @@ export default function BookingForm() {
                   minDate={new Date()}
                   dateFormat="MMMM d, yyyy h:mm aa"
                   className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 w-full p-2 rounded"
-                  placeholderText={`Select date & time (${shop.openingTime} - ${shop.closingTime})`}
+                  placeholderText={
+                    shop.shopStatus === "closed"
+                      ? "Shop is closed"
+                      : watch("barber") 
+                        ? `Select date & time (${shop.openingTime} - ${shop.closingTime})`
+                        : "Please select a barber first"
+                  }
+                  disabled={shop.shopStatus === "closed" || !watch("barber")}
                 />
                 {errors.schedule && (
                   <p className="text-red-500 text-sm mt-1">
                     {errors.schedule.message}
+                  </p>
+                )}
+                {!watch("barber") && (
+                  <p className="text-yellow-400 text-sm mt-1">
+                    Please select a barber to enable date/time selection
                   </p>
                 )}
               </motion.div>
@@ -543,12 +614,25 @@ export default function BookingForm() {
             {/* Service & Barber */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <motion.div variants={itemVariants}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-white text-sm font-medium">Service</span>
+                  {lastUpdate.services && (
+                    <span className="text-green-400 text-xs animate-pulse">
+                      ● Live
+                    </span>
+                  )}
+                </div>
                 <Select
                   value={watch("service")}
                   onValueChange={(val) => setValue("service", val)}
+                  disabled={shop.shopStatus === "closed"}
                 >
                   <SelectTrigger className="bg-white/10 border-white/20 text-white w-full">
-                    <SelectValue placeholder="Select Service" />
+                    <SelectValue placeholder={
+                      shop.shopStatus === "closed" 
+                        ? "Shop is closed" 
+                        : "Select Service"
+                    } />
                   </SelectTrigger>
                   <SelectContent>
                     {services.length > 0 ? (
@@ -567,12 +651,29 @@ export default function BookingForm() {
               </motion.div>
 
               <motion.div variants={itemVariants}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-white text-sm font-medium">Barber</span>
+                  {lastUpdate.barbers && (
+                    <span className="text-green-400 text-xs animate-pulse">
+                      ● Live
+                    </span>
+                  )}
+                </div>
                 <Select
                   value={watch("barber")}
-                  onValueChange={(val) => setValue("barber", val)}
+                  onValueChange={(val) => {
+                    setValue("barber", val);
+                    // Clear schedule when barber changes
+                    setValue("schedule", new Date());
+                  }}
+                  disabled={shop.shopStatus === "closed"}
                 >
                   <SelectTrigger className="bg-white/10 border-white/20 text-white w-full">
-                    <SelectValue placeholder="Choose Barber" />
+                    <SelectValue placeholder={
+                      shop.shopStatus === "closed" 
+                        ? "Shop is closed" 
+                        : "Choose Barber"
+                    } />
                   </SelectTrigger>
                   <SelectContent>
                     {barbers.length > 0 ? (
@@ -599,9 +700,12 @@ export default function BookingForm() {
                   onValueChange={(val) =>
                     setValue("ageGroup", val as BookingFormData["ageGroup"])
                   }
+                  disabled={shop.shopStatus === "closed"}
                 >
                   <SelectTrigger className="bg-white/10 border-white/20 text-white w-full">
-                    <SelectValue placeholder="Age Group" />
+                    <SelectValue placeholder={
+                      shop.shopStatus === "closed" ? "Shop is closed" : "Age Group"
+                    } />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="student">Student</SelectItem>
@@ -651,6 +755,7 @@ export default function BookingForm() {
                 disabled={
                   status === "unauthenticated" ||
                   loading ||
+                  shop.shopStatus === "closed" ||
                   userAppointments.some(
                     (appt) =>
                       appt.status === "pending" || appt.status === "scheduled"
@@ -660,6 +765,8 @@ export default function BookingForm() {
               >
                 {loading
                   ? "Booking..."
+                  : shop.shopStatus === "closed"
+                  ? "Shop is Closed"
                   : userAppointments.some(
                       (appt) =>
                         appt.status === "pending" || appt.status === "scheduled"
