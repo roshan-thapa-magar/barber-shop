@@ -30,7 +30,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { MoreHorizontal, Search, Filter, Printer } from "lucide-react";
 import { AppointmentForm } from "@/components/appointment-form";
-
+import { io, Socket } from "socket.io-client";
 interface ServiceDetails {
   type: string;
   price: number;
@@ -99,6 +99,52 @@ export default function AppointmentsPage() {
     };
 
     fetchAppointments();
+
+    // Initialize socket connection
+    const socket: Socket = io({
+      path: "/socket.io/",
+      transports: ["websocket", "polling"]
+    });
+
+    socket.on("connect", () => {
+      console.log("Connected to socket server:", socket.id);
+    });
+
+    socket.on("appointment:update", (newAppointment: Appointment) => {
+      console.log("Received appointment update:", newAppointment);
+      setAppointments((prev) => {
+        // Check if this is an update to existing appointment or new appointment
+        const existingIndex = prev.findIndex((a) => a._id === newAppointment._id);
+        if (existingIndex !== -1) {
+          // Update existing appointment
+          const updated = [...prev];
+          updated[existingIndex] = newAppointment;
+          return updated;
+        } else {
+          // Add new appointment (avoid duplicates)
+          if (prev.find((a) => a._id === newAppointment._id)) return prev;
+          return [...prev, newAppointment];
+        }
+      });
+    });
+
+    socket.on("appointment:deleted", (data: { id: string; appointment: Appointment }) => {
+      console.log("Received appointment deletion:", data);
+      setAppointments((prev) => prev.filter((a) => a._id !== data.id));
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Disconnected from socket server");
+    });
+
+    socket.on("connect_error", (error) => {
+      console.error("Socket connection error:", error);
+    });
+
+    // Cleanup function
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const filteredAppointments = appointments.filter((appointment) => {
@@ -452,116 +498,119 @@ export default function AppointmentsPage() {
         </div>
       </div>
       <div className="border rounded-lg p-4 bg-muted/50 ">
-      <div className="flex md:flex-none md:justify-start ">
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search appointments..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="scheduled">Scheduled</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="flex md:flex-none md:justify-start ">
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search appointments..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="flex-1 overflow-auto border rounded-lg">
-        {isLoading ? (
-          <p className="p-6 text-center text-muted-foreground">Loading...</p>
-        ) : (
-          <Table>
-            <TableHeader className="sticky top-0 bg-background z-10">
-              <TableRow>
-                <TableHead>Name</TableHead>
-                {/* <TableHead>Email</TableHead> */}
-                <TableHead>Phone</TableHead>
-                <TableHead>Barber</TableHead>
-                <TableHead>Service</TableHead>
-                <TableHead>Schedule</TableHead>
-                <TableHead>Customer Type</TableHead>
-                <TableHead>Age Group</TableHead>
-                <TableHead>Payment Method</TableHead>
-                {/* <TableHead>Payment Status</TableHead> */}
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredAppointments.map((appointment) => (
-                <TableRow key={appointment._id}>
-                  <TableCell>{appointment.name}</TableCell>
-                  <TableCell className="hidden">{appointment.email}</TableCell>
-                  <TableCell>{appointment.phone}</TableCell>
-                  <TableCell>{appointment.barber}</TableCell>
-                  <TableCell>
-                    {appointment.service.type} ( रु {appointment.service.price})
-                  </TableCell>
-                  <TableCell>
-                    {moment(appointment.schedule).format("YYYY-MM-DD h:mm A")}
-                  </TableCell>
-                  <TableCell>{appointment.customerType}</TableCell>
-                  <TableCell>
-                    {getBadge(appointment.ageGroup, "ageGroup")}
-                  </TableCell>
-                  <TableCell>
-                    {getBadge(appointment.paymentMethod, "paymentMethod")}
-                  </TableCell>
-                  <TableCell className="hidden">
-                    {getBadge(appointment.paymentStatus, "paymentStatus")}
-                  </TableCell>
-                  <TableCell>
-                    {getBadge(appointment.status, "status")}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => handleEditAppointment(appointment)}
-                        >
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handlePrintAppointment(appointment)}
-                        >
-                          <Printer className="mr-2 h-4 w-4" /> Print Bill
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            handleDeleteAppointment(appointment._id)
-                          }
-                          className="text-destructive"
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+        <div className="flex-1 overflow-auto border rounded-lg">
+          {isLoading ? (
+            <p className="p-6 text-center text-muted-foreground">Loading...</p>
+          ) : (
+            <Table>
+              <TableHeader className="sticky top-0 bg-background z-10">
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  {/* <TableHead>Email</TableHead> */}
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Barber</TableHead>
+                  <TableHead>Service</TableHead>
+                  <TableHead>Schedule</TableHead>
+                  <TableHead>Customer Type</TableHead>
+                  <TableHead>Age Group</TableHead>
+                  <TableHead>Payment Method</TableHead>
+                  {/* <TableHead>Payment Status</TableHead> */}
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </div>
+              </TableHeader>
+              <TableBody>
+                {filteredAppointments.map((appointment) => (
+                  <TableRow key={appointment._id}>
+                    <TableCell>{appointment.name}</TableCell>
+                    <TableCell className="hidden">
+                      {appointment.email}
+                    </TableCell>
+                    <TableCell>{appointment.phone}</TableCell>
+                    <TableCell>{appointment.barber}</TableCell>
+                    <TableCell>
+                      {appointment.service.type} ( रु{" "}
+                      {appointment.service.price})
+                    </TableCell>
+                    <TableCell>
+                      {moment(appointment.schedule).format("YYYY-MM-DD h:mm A")}
+                    </TableCell>
+                    <TableCell>{appointment.customerType}</TableCell>
+                    <TableCell>
+                      {getBadge(appointment.ageGroup, "ageGroup")}
+                    </TableCell>
+                    <TableCell>
+                      {getBadge(appointment.paymentMethod, "paymentMethod")}
+                    </TableCell>
+                    <TableCell className="hidden">
+                      {getBadge(appointment.paymentStatus, "paymentStatus")}
+                    </TableCell>
+                    <TableCell>
+                      {getBadge(appointment.status, "status")}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => handleEditAppointment(appointment)}
+                          >
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handlePrintAppointment(appointment)}
+                          >
+                            <Printer className="mr-2 h-4 w-4" /> Print Bill
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() =>
+                              handleDeleteAppointment(appointment._id)
+                            }
+                            className="text-destructive"
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
       </div>
 
       <AppointmentForm

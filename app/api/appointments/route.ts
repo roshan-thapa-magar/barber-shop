@@ -4,6 +4,11 @@ import AppointmentModel, { IAppointment } from "@/model/appointment";
 import { FilterQuery } from "mongoose";
 import { sendAppointmentNotificationToBarbers } from "@/lib/email";
 
+// Declare global io for TypeScript
+declare global {
+  var io: any;
+}
+
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "An unknown error occurred";
 
@@ -41,66 +46,93 @@ export async function POST(request: NextRequest) {
   try {
     await dbConnect();
     const body: Partial<IAppointment> = await request.json();
-    console.log('=== APPOINTMENT CREATION DEBUG ===');
-    console.log('Raw request body:', body);
-    console.log('Body type:', typeof body);
-    console.log('Body keys:', Object.keys(body));
-    
+    console.log("=== APPOINTMENT CREATION DEBUG ===");
+    console.log("Raw request body:", body);
+    console.log("Body type:", typeof body);
+    console.log("Body keys:", Object.keys(body));
+
     // Validate required fields
-    const requiredFields = ['name', 'email', 'phone', 'barber', 'service', 'schedule'];
-    const missingFields = requiredFields.filter(field => !body[field as keyof IAppointment]);
-    
+    const requiredFields = [
+      "name",
+      "email",
+      "phone",
+      "barber",
+      "service",
+      "schedule",
+    ];
+    const missingFields = requiredFields.filter(
+      (field) => !body[field as keyof IAppointment]
+    );
+
     if (missingFields.length > 0) {
-      console.log('Missing required fields:', missingFields);
+      console.log("Missing required fields:", missingFields);
       return NextResponse.json(
-        { error: `Missing required fields: ${missingFields.join(', ')}` },
+        { error: `Missing required fields: ${missingFields.join(", ")}` },
         { status: 400 }
       );
     }
-    
+
     // Validate service structure
-    if (!body.service || typeof body.service !== 'object' || !body.service.type || !body.service.price) {
-      console.log('Invalid service structure:', body.service);
+    if (
+      !body.service ||
+      typeof body.service !== "object" ||
+      !body.service.type ||
+      !body.service.price
+    ) {
+      console.log("Invalid service structure:", body.service);
       return NextResponse.json(
-        { error: 'Service must have type and price' },
+        { error: "Service must have type and price" },
         { status: 400 }
       );
     }
-    
-    console.log('All validations passed, creating appointment...');
-    
+
+    console.log("All validations passed, creating appointment...");
+
     const newAppointment = await AppointmentModel.create(body);
-    console.log('Appointment created successfully:', newAppointment._id);
-    
+    console.log("Appointment created successfully:", newAppointment._id);
+
     // Send email notification to all barbers (optional - won't fail appointment creation)
     try {
       // Check if email credentials are configured
       if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-        console.log('Email credentials not configured, skipping email notification');
+        console.log(
+          "Email credentials not configured, skipping email notification"
+        );
       } else {
         await sendAppointmentNotificationToBarbers({
-          clientName: body.name || 'Unknown',
-          clientEmail: body.email || 'No email provided',
-          clientPhone: body.phone || 'No phone provided',
-          service: body.service?.type || 'Unknown service',
-          date: body.schedule ? new Date(body.schedule).toLocaleDateString() : 'Unknown date',
-          time: body.schedule ? new Date(body.schedule).toLocaleTimeString() : 'Unknown time',
+          clientName: body.name || "Unknown",
+          clientEmail: body.email || "No email provided",
+          clientPhone: body.phone || "No phone provided",
+          service: body.service?.type || "Unknown service",
+          date: body.schedule
+            ? new Date(body.schedule).toLocaleDateString()
+            : "Unknown date",
+          time: body.schedule
+            ? new Date(body.schedule).toLocaleTimeString()
+            : "Unknown time",
           barberName: body.barber || undefined,
         });
-        console.log('Email notification sent successfully');
+        console.log("Email notification sent successfully");
       }
     } catch (emailError) {
-      console.error('Failed to send email notification:', emailError);
+      console.error("Failed to send email notification:", emailError);
       // Don't fail the appointment creation if email fails
     }
-    
+    // Emit socket event if io is available
+    if (global.io) {
+      global.io.emit("appointment:update", newAppointment);
+    }
+
     return NextResponse.json(newAppointment, { status: 201 });
   } catch (error: unknown) {
-    console.error('=== APPOINTMENT CREATION ERROR ===');
-    console.error('Error type:', typeof error);
-    console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
-    console.error('Full error:', error);
-    
+    console.error("=== APPOINTMENT CREATION ERROR ===");
+    console.error("Error type:", typeof error);
+    console.error(
+      "Error message:",
+      error instanceof Error ? error.message : "Unknown error"
+    );
+    console.error("Full error:", error);
+
     return NextResponse.json(
       { error: getErrorMessage(error) },
       { status: 500 }

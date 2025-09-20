@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongodb";
 import AppointmentModel from "@/model/appointment";
 
+// Declare global io for TypeScript
+declare global {
+  var io: any;
+}
+
 await dbConnect();
 
 // Helper to extract error message safely
@@ -52,6 +57,11 @@ export async function PUT(
       );
     }
 
+    // Emit socket event for appointment update
+    if (global.io) {
+      global.io.emit("appointment:updated", updatedAppointment);
+    }
+
     return NextResponse.json(updatedAppointment);
   } catch (error: unknown) {
     return NextResponse.json(
@@ -77,6 +87,12 @@ export async function DELETE(
         { status: 404 }
       );
     }
+
+    // Emit socket event for appointment deletion
+    if (global.io) {
+      global.io.emit("appointment:deleted", { id, appointment: deletedAppointment });
+    }
+
     return NextResponse.json({ message: "Appointment deleted successfully" });
   } catch (error: unknown) {
     return NextResponse.json(

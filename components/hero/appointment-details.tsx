@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useUserContext } from "@/context/UserContext";
 import moment from "moment";
+import { io, Socket } from "socket.io-client";
 import {
   Table,
   TableBody,
@@ -47,6 +48,7 @@ interface Appointment {
   status: string;
   paymentMethod: string;
   createdAt: string;
+  myId?: string; // Add myId field for user identification
 }
 
 type FormData = {
@@ -96,6 +98,58 @@ export default function AppointmentDetails() {
       }
     };
     fetchAppointments();
+
+    // Initialize socket connection for real-time updates
+    const socket: Socket = io({
+      path: "/socket.io/",
+      transports: ["websocket", "polling"]
+    });
+
+    socket.on("connect", () => {
+      console.log("Connected to socket server:", socket.id);
+    });
+
+    socket.on("appointment:update", (updatedAppointment: Appointment) => {
+      console.log("Received appointment update:", updatedAppointment);
+      setAppointments((prev) => {
+        // Check if this appointment belongs to the current user
+        if (updatedAppointment.myId !== myId) return prev;
+        
+        // Check if this is an update to existing appointment or new appointment
+        const existingIndex = prev.findIndex((a) => a._id === updatedAppointment._id);
+        if (existingIndex !== -1) {
+          // Update existing appointment
+          const updated = [...prev];
+          updated[existingIndex] = updatedAppointment;
+          return updated;
+        } else {
+          // Add new appointment (avoid duplicates)
+          if (prev.find((a) => a._id === updatedAppointment._id)) return prev;
+          return [...prev, updatedAppointment];
+        }
+      });
+    });
+
+    socket.on("appointment:deleted", (data: { id: string; appointment: Appointment }) => {
+      console.log("Received appointment deletion:", data);
+      // Only remove if it belongs to the current user
+      if (data.appointment.myId === myId) {
+        setAppointments((prev) => prev.filter((a) => a._id !== data.id));
+      }
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Disconnected from socket server");
+    });
+
+    socket.on("connect_error", (error) => {
+      console.error("Socket connection error:", error);
+    });
+
+    // Cleanup function
+    return () => {
+      socket.disconnect();
+    };
   }, [myId]);
 
   // Fetch services and barbers
