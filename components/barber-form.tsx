@@ -229,21 +229,33 @@ export function BarberForm({ open, onOpenChange, barber, onSubmit }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
-              placeholder="name@example.com"
-              required
-            />
-            {errors.email && (
-              <p className="text-sm text-red-500">{errors.email}</p>
-            )}
-          </div>
+  <Label htmlFor="email">Email</Label>
+  <Input
+    id="email"
+    type="email"
+    value={formData.email}
+    onChange={(e) => {
+      setFormData({ ...formData, email: e.target.value });
+
+      // Clear email error when user types
+      if (errors.email) {
+        setErrors((prev) => ({ ...prev, email: "" }));
+      }
+    }}
+    onFocus={() => {
+      // Also clear email error on focus
+      if (errors.email) {
+        setErrors((prev) => ({ ...prev, email: "" }));
+      }
+    }}
+    placeholder="name@example.com"
+    required
+  />
+  {errors.email && (
+    <p className="text-sm text-red-500">{errors.email}</p>
+  )}
+</div>
+
 
           <div className="space-y-2">
             <Label htmlFor="phone">Phone</Label>

@@ -574,7 +574,7 @@ export default function BookingForm() {
                   filterTime={filterTime}
                   minDate={new Date()}
                   dateFormat="MMMM d, yyyy h:mm aa"
-                  disabled={isFormDisabled}
+                  disabled={isFormDisabled || !watch("barber")} 
                   className={`bg-white/10 border-white/20 text-white placeholder:text-gray-400 w-full p-2 rounded ${
                     isFormDisabled ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
